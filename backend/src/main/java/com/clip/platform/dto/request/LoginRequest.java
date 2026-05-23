@@ -13,9 +13,7 @@ public class LoginRequest {
     @NotBlank(message = "密码不能为空")
     private String password;
 
-    @NotBlank(message = "验证码不能为空")
+    // 连续失败后才需要（前端控制，后端也校验）
     private String captchaCode;
-
-    @NotBlank(message = "验证码ID不能为空")
     private String captchaId;
 }

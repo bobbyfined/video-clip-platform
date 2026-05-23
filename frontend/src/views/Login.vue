@@ -11,11 +11,12 @@
               <el-input v-model="pwdForm.email" placeholder="邮箱地址" prefix-icon="Message" />
             </el-form-item>
             <el-form-item prop="password">
-              <el-input v-model="pwdForm.password" type="password" placeholder="密码" prefix-icon="Lock" show-password />
+              <el-input v-model="pwdForm.password" type="password" placeholder="密码" prefix-icon="Lock" show-password @keyup.enter="handlePwdLogin" />
             </el-form-item>
-            <el-form-item prop="captchaCode">
+            <!-- 连续失败后才显示图片验证码 -->
+            <el-form-item v-if="needPwdCaptcha" prop="captchaCode">
               <div class="captcha-row">
-                <el-input v-model="pwdForm.captchaCode" placeholder="图片验证码" prefix-icon="Picture" />
+                <el-input v-model="pwdForm.captchaCode" placeholder="图片验证码" prefix-icon="Picture" @keyup.enter="handlePwdLogin" />
                 <div class="captcha-img" @click="refreshPwdCaptcha" title="点击刷新">
                   <img v-if="pwdCaptchaImage" :src="pwdCaptchaImage" alt="验证码" />
                 </div>
@@ -37,7 +38,7 @@
             </el-form-item>
             <el-form-item prop="emailCode">
               <div class="email-code-row">
-                <el-input v-model="codeForm.emailCode" placeholder="邮箱验证码" prefix-icon="message" />
+                <el-input v-model="codeForm.emailCode" placeholder="邮箱验证码" prefix-icon="message" @keyup.enter="handleCodeLogin" />
                 <el-button type="primary" :disabled="emailCodeCooldown > 0" @click="handleSendLoginCode" :loading="sendingEmailCode">
                   {{ emailCodeCooldown > 0 ? `${emailCodeCooldown}s` : '发送验证码' }}
                 </el-button>
@@ -57,13 +58,13 @@
       </div>
     </el-card>
 
-    <!-- 图片验证码弹窗 -->
+    <!-- 图片验证码弹窗（发送验证码前拦截） -->
     <el-dialog v-model="showCaptchaDialog" title="验证" width="360" :close-on-click-modal="false">
       <div class="captcha-dialog">
-        <p style="margin-bottom: 12px; color: #606266;">请输入图片验证码以继续</p>
+        <p style="margin-bottom: 12px; color: #606266;">请输入图片验证码</p>
         <div class="captcha-row">
           <el-input v-model="captchaInput" placeholder="验证码" size="large" @keyup.enter="confirmCaptcha" />
-          <div class="captcha-img" @click="refreshCaptchaForDialog" title="点击刷新">
+          <div class="captcha-img" @click="refreshDialogCaptcha" title="点击刷新">
             <img v-if="dialogCaptchaImage" :src="dialogCaptchaImage" alt="验证码" />
           </div>
         </div>
@@ -82,7 +83,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { login, loginByCode, getCaptcha, sendEmailCode } from '@/api/auth'
 import { ElMessage } from 'element-plus'
-import { Key, Picture } from '@element-plus/icons-vue'
+import { Key } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 const router = useRouter()
@@ -95,23 +96,22 @@ const loginMode = ref('password')
 const pwdFormRef = ref<FormInstance>()
 const pwdCaptchaId = ref('')
 const pwdCaptchaImage = ref('')
+const needPwdCaptcha = ref(false)
+const pwdFailCount = ref(0)
 
 const pwdForm = reactive({ email: '', password: '', captchaCode: '' })
 const pwdRules = {
   email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
 }
 
 async function refreshPwdCaptcha() {
-  try {
-    const { data } = await getCaptcha()
-    if (data.code === 200) {
-      pwdCaptchaId.value = data.data.captchaId
-      pwdCaptchaImage.value = data.data.image
-      pwdForm.captchaCode = ''
-    }
-  } catch { /* ignore */ }
+  const { data } = await getCaptcha()
+  if (data.code === 200) {
+    pwdCaptchaId.value = data.data.captchaId
+    pwdCaptchaImage.value = data.data.image
+    pwdForm.captchaCode = ''
+  }
 }
 
 async function handlePwdLogin() {
@@ -119,20 +119,32 @@ async function handlePwdLogin() {
   if (!valid) return
   loading.value = true
   try {
-    const { data } = await login(pwdForm.email, pwdForm.password, pwdCaptchaId.value, pwdForm.captchaCode)
+    const captchaId = needPwdCaptcha.value ? pwdCaptchaId.value : ''
+    const captchaCode = needPwdCaptcha.value ? pwdForm.captchaCode : ''
+    const { data } = await login(pwdForm.email, pwdForm.password, captchaId, captchaCode)
     if (data.code === 200) {
       authStore.setAuth(data.data.token, data.data.user)
       ElMessage.success('登录成功')
+      pwdFailCount.value = 0
+      needPwdCaptcha.value = false
       router.push((route.query.redirect as string) || '/')
     } else {
-      ElMessage.error(data.message)
-      refreshPwdCaptcha()
+      handlePwdFail(data.message)
     }
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.message || '登录失败')
-    refreshPwdCaptcha()
+    handlePwdFail(err.response?.data?.message || '登录失败')
   } finally {
     loading.value = false
+  }
+}
+
+function handlePwdFail(msg: string) {
+  ElMessage.error(msg)
+  pwdFailCount.value++
+  if (pwdFailCount.value >= 3) {
+    needPwdCaptcha.value = true
+    refreshPwdCaptcha()
+    ElMessage.warning('失败次数过多，请输入验证码')
   }
 }
 
@@ -151,31 +163,23 @@ const codeRules = {
   emailCode: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }],
 }
 
-async function refreshCaptchaForDialog() {
-  try {
-    const { data } = await getCaptcha()
-    if (data.code === 200) {
-      dialogCaptchaId.value = data.data.captchaId
-      dialogCaptchaImage.value = data.data.image
-      captchaInput.value = ''
-    }
-  } catch { /* ignore */ }
+async function refreshDialogCaptcha() {
+  const { data } = await getCaptcha()
+  if (data.code === 200) {
+    dialogCaptchaId.value = data.data.captchaId
+    dialogCaptchaImage.value = data.data.image
+    captchaInput.value = ''
+  }
 }
 
 function handleSendLoginCode() {
-  if (!codeForm.email) {
-    ElMessage.warning('请先输入邮箱地址')
-    return
-  }
-  refreshCaptchaForDialog()
+  if (!codeForm.email) { ElMessage.warning('请先输入邮箱地址'); return }
+  refreshDialogCaptcha()
   showCaptchaDialog.value = true
 }
 
 async function confirmCaptcha() {
-  if (!captchaInput.value.trim()) {
-    ElMessage.warning('请输入验证码')
-    return
-  }
+  if (!captchaInput.value.trim()) { ElMessage.warning('请输入验证码'); return }
   sendingEmailCode.value = true
   try {
     const { data } = await sendEmailCode(codeForm.email, dialogCaptchaId.value, captchaInput.value)
@@ -183,17 +187,14 @@ async function confirmCaptcha() {
       ElMessage.success('验证码已发送到邮箱')
       showCaptchaDialog.value = false
       emailCodeCooldown.value = 60
-      const timer = setInterval(() => {
-        emailCodeCooldown.value--
-        if (emailCodeCooldown.value <= 0) clearInterval(timer)
-      }, 1000)
+      const timer = setInterval(() => { emailCodeCooldown.value--; if (emailCodeCooldown.value <= 0) clearInterval(timer) }, 1000)
     } else {
       ElMessage.error(data.message || '发送失败')
-      refreshCaptchaForDialog()
+      refreshDialogCaptcha()
     }
   } catch (err: any) {
     ElMessage.error(err.response?.data?.message || '发送失败')
-    refreshCaptchaForDialog()
+    refreshDialogCaptcha()
   } finally {
     sendingEmailCode.value = false
   }
@@ -219,26 +220,13 @@ async function handleCodeLogin() {
   }
 }
 
-onMounted(refreshPwdCaptcha)
+onMounted(() => { /* 密码登录默认不加载验证码 */ })
 </script>
 
 <style scoped>
-.login-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 70vh;
-}
+.login-page { display: flex; justify-content: center; align-items: center; min-height: 70vh; }
 .login-card { width: 400px; padding: 20px; }
-.login-card h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
+.login-card h2 { text-align: center; margin-bottom: 20px; color: #303133; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .login-footer { text-align: center; color: #909399; font-size: 14px; margin-top: 10px; }
 .login-footer a { color: #409eff; }
 .captcha-row { display: flex; gap: 12px; width: 100%; }

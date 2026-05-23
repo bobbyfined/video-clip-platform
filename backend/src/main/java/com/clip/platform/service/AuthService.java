@@ -66,10 +66,12 @@ public class AuthService {
             throw new BusinessException("登录失败次数过多，请 " + lockedSeconds + " 秒后再试");
         }
 
-        // 图片验证码校验
-        if (!captchaService.verifyCaptcha(request.getCaptchaId(), request.getCaptchaCode())) {
-            rateLimitService.recordFailure(rateLimitKey);
-            throw new BusinessException("验证码错误或已过期");
+        // 图片验证码校验（仅当前端传了 captchaId 时才校验，即连续失败后）
+        if (request.getCaptchaId() != null && !request.getCaptchaId().isBlank()) {
+            if (!captchaService.verifyCaptcha(request.getCaptchaId(), request.getCaptchaCode())) {
+                rateLimitService.recordFailure(rateLimitKey);
+                throw new BusinessException("验证码错误或已过期");
+            }
         }
 
         try {
