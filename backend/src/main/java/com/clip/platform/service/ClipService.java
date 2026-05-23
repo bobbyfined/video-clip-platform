@@ -77,13 +77,15 @@ public class ClipService {
             double endSec = clip.getEndSeconds();
             double duration = endSec - startSec;
 
+            // -ss 在 -i 之前用于快速seek，再加 -ss 在 -i 之后做精确裁剪
             ProcessBuilder pb = new ProcessBuilder(
                     "ffmpeg", "-y",
                     "-ss", String.format("%.3f", startSec),
                     "-i", sourcePath.toString(),
                     "-t", String.format("%.3f", duration),
-                    "-c", "copy",
+                    "-c:v", "libx264", "-c:a", "aac",
                     "-avoid_negative_ts", "make_zero",
+                    "-movflags", "+faststart",
                     outputPath.toString()
             );
             pb.redirectErrorStream(true);
