@@ -15,10 +15,16 @@
           </div>
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" placeholder="密码（8位以上，含大小写和数字）" prefix-icon="Lock" show-password />
+          <div class="password-row">
+            <el-input v-model="form.password" type="password" placeholder="密码（8位以上，含大小写和数字）" prefix-icon="Lock" show-password />
+            <el-button @click="generatePassword" title="随机生成密码">🎲 随机密码</el-button>
+          </div>
         </el-form-item>
         <el-form-item prop="confirmPassword">
-          <el-input v-model="form.confirmPassword" type="password" placeholder="确认密码" prefix-icon="Lock" show-password />
+          <div class="password-row">
+            <el-input v-model="form.confirmPassword" type="password" placeholder="确认密码" prefix-icon="Lock" show-password />
+            <el-button @click="copyPassword" :disabled="!form.password" title="复制上面的密码">📋 复制</el-button>
+          </div>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" style="width: 100%" @click="handleRegister">
@@ -156,6 +162,30 @@ async function handleRegister() {
     loading.value = false
   }
 }
+
+function generatePassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const lower = 'abcdefghjkmnpqrstuvwxyz'
+  const digits = '23456789'
+  const all = upper + lower + digits
+  let pwd = upper[Math.floor(Math.random() * upper.length)]
+      + lower[Math.floor(Math.random() * lower.length)]
+      + digits[Math.floor(Math.random() * digits.length)]
+  for (let i = 3; i < 12; i++) pwd += all[Math.floor(Math.random() * all.length)]
+  form.password = pwd.split('').sort(() => Math.random() - 0.5).join('')
+  form.confirmPassword = form.password
+  ElMessage.success('已生成随机密码')
+}
+
+async function copyPassword() {
+  if (!form.password) return
+  try {
+    await navigator.clipboard.writeText(form.password)
+    ElMessage.success('密码已复制到剪贴板')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
 </script>
 
 <style scoped>
@@ -185,4 +215,7 @@ async function handleRegister() {
 .captcha-row .el-input { width: 150px; }
 .captcha-img { width: 150px; height: 40px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid #dcdfe6; }
 .captcha-img img { width: 100%; height: 100%; object-fit: cover; }
+.password-row { display: flex; gap: 10px; width: 100%; }
+.password-row .el-input { flex: 1; }
+.password-row .el-button { width: 120px; flex-shrink: 0; }
 </style>
