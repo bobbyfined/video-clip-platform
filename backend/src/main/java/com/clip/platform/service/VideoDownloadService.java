@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 /**
@@ -64,11 +65,12 @@ public class VideoDownloadService {
      * 从 URL 下载视频
      */
     public DownloadResult downloadFromUrl(String url) {
-        // 判断是否为抖音/TikTok 链接
         if (isDouyinUrl(url)) {
             return downloadDouyinViaScraper(url);
         } else if (isTikTokUrl(url)) {
             return downloadTikTokViaScraper(url);
+        } else if (isBilibiliUrl(url)) {
+            return downloadBilibiliViaYutto(url);
         } else {
             return downloadViaYtDlp(url);
         }
@@ -254,6 +256,71 @@ public class VideoDownloadService {
 
         } catch (Exception e) {
             throw new BusinessException("文件下载失败: " + e.getMessage());
+        }
+    }
+
+    private boolean isBilibiliUrl(String url) {
+        return url.contains("bilibili.com") || url.contains("b23.tv");
+    }
+
+    /**
+     * 用 yutto 下载 B站视频（不需要 Cookie）
+     */
+    private DownloadResult downloadBilibiliViaYutto(String url) {
+        try {
+            String uuid = UUID.randomUUID().toString();
+            Path outputDir = uploadDir.resolve("downloads");
+            Files.createDirectories(outputDir);
+
+            log.info("yutto 下载 B站视频: {}", url);
+            ProcessBuilder pb = new ProcessBuilder(
+                    "yutto", "-q", "64", url, "-d", outputDir.toString(), "--no-danmaku");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            List<String> lines = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+                log.info("yutto: {}", line);
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new BusinessException("yutto 下载失败，请检查链接是否正确");
+            }
+
+            // 找到下载的文件（最新的 mp4/mkv）
+            Path downloadedFile = null;
+            try (var stream = Files.list(outputDir)) {
+                downloadedFile = stream
+                        .filter(p -> p.toString().endsWith(".mp4") || p.toString().endsWith(".mkv"))
+                        .max((a, b) -> Long.compare(a.toFile().lastModified(), b.toFile().lastModified()))
+                        .orElse(null);
+            }
+
+            if (downloadedFile == null || !Files.exists(downloadedFile)) {
+                throw new BusinessException("yutto 下载文件未找到");
+            }
+
+            // 重命名为 UUID 避免冲突
+            String ext = getFileExtension(downloadedFile.toString());
+            Path renamed = outputDir.resolve(uuid + "." + ext);
+            Files.move(downloadedFile, renamed, StandardCopyOption.REPLACE_EXISTING);
+
+            Path relativePath = uploadDir.getParent().relativize(renamed);
+            long fileSize = Files.size(renamed);
+            String mimeType = getMimeType(ext);
+            String title = downloadedFile.getFileName().toString().replaceAll("\\.[^.]+$", "");
+
+            log.info("yutto 下载完成: title={}, size={}KB", title, fileSize / 1024);
+            return new DownloadResult(relativePath.toString(), title, fileSize, mimeType, 0, ext);
+
+        } catch (BusinessException e) { throw e; }
+        catch (Exception e) {
+            log.error("yutto 下载失败，回退到 yt-dlp: {}", e.getMessage());
+            return downloadViaYtDlp(url);
         }
     }
 
