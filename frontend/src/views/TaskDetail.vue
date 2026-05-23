@@ -127,7 +127,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getTaskDetail, exportSrt, exportTxt, exportClips, renderClip, renderAllClips, getVideoUrl } from '@/api/task'
+import { getTaskDetail, exportSrt, exportTxt, exportClips, renderClip, renderAllClips, getVideoUrl, downloadClip } from '@/api/task'
 import { formatFileSize, formatDuration, formatTimeCode, formatDate, platformMap, contentTypeMap } from '@/utils/format'
 import { ElMessage } from 'element-plus'
 import TaskStatusTag from '@/components/TaskStatusTag.vue'
@@ -217,11 +217,18 @@ async function handleRenderAll() {
 
 async function handleDownloadClip(clipId: number) {
   const id = Number(route.params.id)
-  const url = `/api/tasks/${id}/clips/${clipId}/download`
-  const a = document.createElement('a')
-  a.href = url
-  a.download = ''
-  a.click()
+  try {
+    const resp = await downloadClip(id, clipId)
+    const blob = new Blob([resp.data], { type: 'video/mp4' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${id}_clip_${clipId}.mp4`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    ElMessage.error('下载失败，请先裁剪视频')
+  }
 }
 
 async function handleExport(type: 'srt' | 'txt' | 'clips') {

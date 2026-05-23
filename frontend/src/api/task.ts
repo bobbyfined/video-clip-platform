@@ -58,6 +58,11 @@ export function getVideoUrl(taskId: number) {
   return `/api/tasks/${taskId}/video`
 }
 
+/** 下载切片视频（带认证） */
+export function downloadClip(taskId: number, clipId: number) {
+  return api.get(`/tasks/${taskId}/clips/${clipId}/download`, { responseType: 'blob' })
+}
+
 /** 获取可用 LLM 提供商列表 */
 export function getLlmProviders() {
   return api.get('/llm/providers')
