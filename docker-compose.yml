@@ -27,7 +27,8 @@ services:
     volumes:
       - redis_data:/data
 
-  # 抖音/TikTok/B站 视频解析服务
+  # 抖音/TikTok 视频解析服务（绕过反爬，需要填 Cookie）
+  # B站/YouTube/快手等由后端 yt-dlp 处理，不需要此服务
   scraper:
     image: evil0ctal/douyin_tiktok_download_api
     container_name: videoclip-scraper
