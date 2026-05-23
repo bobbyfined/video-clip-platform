@@ -19,9 +19,12 @@ public class RegisterRequest {
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$", message = "密码必须包含大小写字母和数字")
     private String password;
 
-    @NotBlank(message = "验证码不能为空")
+    @NotBlank(message = "图片验证码不能为空")
     private String captchaCode;
 
     @NotBlank(message = "验证码ID不能为空")
     private String captchaId;
+
+    @NotBlank(message = "邮箱验证码不能为空")
+    private String emailCode;
 }

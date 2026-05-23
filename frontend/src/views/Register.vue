@@ -6,6 +6,19 @@
         <el-form-item prop="email">
           <el-input v-model="form.email" placeholder="邮箱地址" prefix-icon="Message" />
         </el-form-item>
+        <el-form-item prop="emailCode">
+          <div class="email-code-row">
+            <el-input v-model="form.emailCode" placeholder="邮箱验证码" prefix-icon="message" />
+            <el-button
+              type="primary"
+              :disabled="emailCodeCooldown > 0"
+              @click="handleSendEmailCode"
+              :loading="sendingEmailCode"
+            >
+              {{ emailCodeCooldown > 0 ? `${emailCodeCooldown}s` : '发送验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
         <el-form-item prop="nickname">
           <el-input v-model="form.nickname" placeholder="昵称（选填）" prefix-icon="User" />
         </el-form-item>
@@ -17,7 +30,7 @@
         </el-form-item>
         <el-form-item prop="captchaCode">
           <div class="captcha-row">
-            <el-input v-model="form.captchaCode" placeholder="验证码" prefix-icon="Picture" />
+            <el-input v-model="form.captchaCode" placeholder="图片验证码" prefix-icon="Picture" />
             <div class="captcha-img" @click="refreshCaptcha" title="点击刷新">
               <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
               <span v-else class="captcha-loading">加载中...</span>
@@ -41,7 +54,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { register, getCaptcha } from '@/api/auth'
+import { register, getCaptcha, sendEmailCode } from '@/api/auth'
 import { ElMessage } from 'element-plus'
 import { EditPen, CircleCheckFilled, Picture } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
@@ -52,6 +65,8 @@ const loading = ref(false)
 
 const captchaId = ref('')
 const captchaImage = ref('')
+const emailCodeCooldown = ref(0)
+const sendingEmailCode = ref(false)
 
 const form = reactive({
   email: '',
@@ -59,10 +74,12 @@ const form = reactive({
   password: '',
   confirmPassword: '',
   captchaCode: '',
+  emailCode: '',
 })
 
 const rules = {
   email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }],
+  emailCode: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 8, message: '密码至少8位', trigger: 'blur' },
@@ -71,16 +88,13 @@ const rules = {
     { required: true, message: '请确认密码', trigger: 'blur' },
     {
       validator: (_rule: any, value: string, callback: Function) => {
-        if (value !== form.password) {
-          callback(new Error('两次密码不一致'))
-        } else {
-          callback()
-        }
+        if (value !== form.password) callback(new Error('两次密码不一致'))
+        else callback()
       },
       trigger: 'blur',
     },
   ],
-  captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
+  captchaCode: [{ required: true, message: '请输入图片验证码', trigger: 'blur' }],
 }
 
 async function refreshCaptcha() {
@@ -93,13 +107,41 @@ async function refreshCaptcha() {
   } catch { /* ignore */ }
 }
 
+async function handleSendEmailCode() {
+  if (!form.email) {
+    ElMessage.warning('请先输入邮箱地址')
+    return
+  }
+  sendingEmailCode.value = true
+  try {
+    const { data } = await sendEmailCode(form.email)
+    if (data.code === 200) {
+      ElMessage.success('验证码已发送到邮箱')
+      emailCodeCooldown.value = 60
+      const timer = setInterval(() => {
+        emailCodeCooldown.value--
+        if (emailCodeCooldown.value <= 0) clearInterval(timer)
+      }, 1000)
+    } else {
+      ElMessage.error(data.message || '发送失败')
+    }
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.message || '发送失败')
+  } finally {
+    sendingEmailCode.value = false
+  }
+}
+
 async function handleRegister() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
   loading.value = true
   try {
-    const { data } = await register(form.email, form.nickname, form.password, captchaId.value, form.captchaCode)
+    const { data } = await register(
+      form.email, form.nickname, form.password,
+      captchaId.value, form.captchaCode, form.emailCode
+    )
     if (data.code === 200) {
       ElMessage.success('注册成功，请登录')
       router.push('/login')
@@ -145,6 +187,18 @@ onMounted(refreshCaptcha)
 }
 .register-footer a {
   color: #409eff;
+}
+.email-code-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.email-code-row .el-input {
+  flex: 1;
+}
+.email-code-row .el-button {
+  width: 120px;
+  flex-shrink: 0;
 }
 .captcha-row {
   display: flex;

@@ -7,6 +7,7 @@ import com.clip.platform.dto.response.AuthResponse;
 import com.clip.platform.dto.response.UserResponse;
 import com.clip.platform.security.SecurityUtils;
 import com.clip.platform.service.AuthService;
+import com.clip.platform.service.EmailSenderService;
 import com.clip.platform.service.EmailVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +23,27 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final EmailSenderService emailSenderService;
 
     /**
-     * 用户注册
+     * 发送邮箱验证码
+     */
+    @PostMapping("/send-code")
+    public Result<String> sendCode(@RequestParam String email) {
+        String code = emailVerificationService.generateCode(email);
+        emailSenderService.sendVerificationCode(email, code);
+        return Result.ok("验证码已发送");
+    }
+
+    /**
+     * 用户注册（带邮箱验证码）
      */
     @PostMapping("/register")
     public Result<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        // 验证邮箱验证码
+        if (!emailVerificationService.verifyCode(request.getEmail(), request.getEmailCode())) {
+            return Result.fail("邮箱验证码错误或已过期");
+        }
         return Result.ok(authService.register(request));
     }
 
@@ -46,17 +62,5 @@ public class AuthController {
     public Result<UserResponse> me() {
         Long userId = SecurityUtils.getCurrentUserId();
         return Result.ok(authService.getCurrentUser(userId));
-    }
-
-    /**
-     * 邮箱验证
-     */
-    @GetMapping("/verify")
-    public Result<String> verifyEmail(@RequestParam String token) {
-        String email = emailVerificationService.verifyToken(token);
-        if (email == null) {
-            return Result.fail("验证链接无效或已过期");
-        }
-        return Result.ok("邮箱验证成功：" + email);
     }
 }

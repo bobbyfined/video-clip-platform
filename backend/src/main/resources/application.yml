@@ -18,6 +18,14 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.ssl.enable: true
+      mail.smtp.auth: true
 
 # MyBatis-Plus
 mybatis-plus:
@@ -35,15 +43,10 @@ mybatis-plus:
 app:
   upload-dir: ${UPLOAD_DIR:./storage/uploads}
   processed-dir: ${PROCESSED_DIR:./storage/processed}
-  scraper:
-    url: ${SCRAPER_URL:http://localhost:9000}
-  cleanup:
-    enabled: true
-    max-age-hours: 72    # 文件保留72小时（3天）
-    min-disk-gb: 2       # 磁盘最低剩余2GB时紧急清理
+  url: ${APP_URL:http://localhost:5173}
   jwt:
     secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction2024}
-    expiration: 86400000  # 24小时
+    expiration: 86400000
   llm:
     base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
     model: ${LLM_MODEL:deepseek-chat}
@@ -52,6 +55,15 @@ app:
       base-url: ${LLM_MIMO_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
       model: ${LLM_MIMO_MODEL:mimo-v2.5}
       api-key: ${LLM_MIMO_API_KEY:***}
+  scraper:
+    url: ${SCRAPER_URL:http://localhost:9000}
+  cleanup:
+    enabled: true
+    max-age-hours: 72
+    min-disk-gb: 2
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:}
 
 # Springdoc
 springdoc:

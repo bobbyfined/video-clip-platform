@@ -95,7 +95,9 @@ public class FileCleanupRunner {
 
         for (MediaTask task : completedTasks) {
             try {
-                Path filePath = fileStorageService.getAbsolutePath(task.getFilePath());
+                // filePath 格式: uploads/xxx.mp4，基于 uploadDir 的父目录解析
+                Path storageRoot = fileStorageService.getAbsolutePath("").getParent();
+                Path filePath = storageRoot.resolve(task.getFilePath());
                 if (Files.exists(filePath)) {
                     // 检查文件年龄
                     BasicFileAttributes attrs = Files.readAttributes(filePath, BasicFileAttributes.class);
@@ -104,7 +106,7 @@ public class FileCleanupRunner {
                         Files.deleteIfExists(filePath);
                         // 也删除提取的音频文件
                         String audioPath = task.getFilePath().replaceAll("\\.[^.]+$", ".wav");
-                        Files.deleteIfExists(fileStorageService.getAbsolutePath(audioPath));
+                        Files.deleteIfExists(storageRoot.resolve(audioPath));
                         count++;
                         log.debug("清理任务文件: taskId={}, path={}", task.getId(), task.getFilePath());
                     }
@@ -122,8 +124,9 @@ public class FileCleanupRunner {
     private int cleanOrphanFiles() {
         int count = 0;
         try {
-            Path downloadsDir = fileStorageService.getAbsolutePath("downloads").getParent()
-                    .resolve("downloads");
+            // downloads 在 uploads/downloads 下
+            Path storageRoot = fileStorageService.getAbsolutePath("").getParent();
+            Path downloadsDir = storageRoot.resolve("uploads").resolve("downloads");
             if (!Files.exists(downloadsDir)) return 0;
 
             // 获取所有任务的文件路径
@@ -166,8 +169,9 @@ public class FileCleanupRunner {
     private int cleanOldDownloads() {
         java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger(0);
         try {
-            Path processedDir = fileStorageService.getAbsolutePath("processed").getParent()
-                    .resolve("processed");
+            // processed 目录在 storage/processed 下
+            Path storageRoot = fileStorageService.getAbsolutePath("").getParent();
+            Path processedDir = storageRoot.resolve("processed");
             if (!Files.exists(processedDir)) return 0;
 
             int maxAge = maxAgeHours * 2; // 裁剪文件保留更久
@@ -214,9 +218,9 @@ public class FileCleanupRunner {
             long usableSpace = Files.getFileStore(storageDir).getUsableSpace();
             long usedSpace = totalSpace - usableSpace;
 
-            long uploadSize = getDirSize(fileStorageService.getAbsolutePath("").getParent().resolve("uploads"));
-            long processedSize = getDirSize(fileStorageService.getAbsolutePath("").getParent().resolve("processed"));
-            long downloadsSize = getDirSize(fileStorageService.getAbsolutePath("").getParent().resolve("downloads"));
+            long uploadSize = getDirSize(storageDir.resolve("uploads"));
+            long processedSize = getDirSize(storageDir.resolve("processed"));
+            long downloadsSize = getDirSize(storageDir.resolve("uploads").resolve("downloads"));
 
             return new StorageInfo(
                     totalSpace / (1024 * 1024),   // MB

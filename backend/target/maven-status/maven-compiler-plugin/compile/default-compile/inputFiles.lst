@@ -46,6 +46,7 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/AuthService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/CaptchaService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/ClipService.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/EmailSenderService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/EmailVerificationService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/ExportService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/FileStorageService.java
