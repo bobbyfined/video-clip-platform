@@ -2,6 +2,10 @@
 
 基于 AI 的视频内容分析工具，自动将直播回放、长视频、播客等内容切片为适合短视频平台发布的片段。
 
+> **前端后端分离架构**：Spring Boot 3.3 + Vue 3 + MySQL
+
+![登录页](docs/images/login.png)
+
 ## 技术栈
 
 | 层级 | 技术 |
@@ -105,15 +109,50 @@ npm run dev
 ## 功能说明
 
 ### 用户端
+
+#### 首页
+
+![首页](docs/images/home.png)
+
+#### 上传视频
+
+![上传页](docs/images/upload.png)
+
+支持 mp4/mov/mp3/wav/m4a/webm 等格式，最大 500MB。
+
+#### 任务列表
+
+![任务列表](docs/images/tasks.png)
+
+查看任务列表和状态，支持按状态筛选。
+
+#### 个人中心
+
+![个人中心](docs/images/profile.png)
+
+**其他功能：**
 - **注册/登录** - 邮箱注册，JWT 认证
-- **上传视频** - 支持 mp4/mov/mp3/wav/m4a/webm 等格式，最大 500MB
-- **任务管理** - 查看任务列表和状态，支持按状态筛选
+  ![注册页](docs/images/register.png)
 - **转写查看** - 查看语音转写文本，带时间码
 - **AI 分析** - 查看摘要、关键观点、金句
 - **切片建议** - 查看 AI 推荐的切片方案（时间段、标题、评分）
 - **字幕导出** - 支持导出 SRT 和 TXT 格式
 
 ### 管理后台
+
+#### Dashboard
+
+![管理后台](docs/images/admin-dashboard.png)
+
+#### 用户管理
+
+![用户管理](docs/images/admin-users.png)
+
+#### 任务管理
+
+![任务管理](docs/images/admin-tasks.png)
+
+**功能：**
 - **数据概览** - 用户数、任务数统计
 - **用户管理** - 用户列表、修改角色/套餐
 - **任务管理** - 所有任务列表、失败任务重试
