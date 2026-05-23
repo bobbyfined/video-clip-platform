@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: video-clip-platform
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/video_clip?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=utf8}
+    username: ${DB_USER:root}
+    password: ${DB_PASS:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+# MyBatis-Plus
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 应用自定义配置
+app:
+  upload-dir: ${UPLOAD_DIR:./storage/uploads}
+  processed-dir: ${PROCESSED_DIR:./storage/processed}
+  jwt:
+    secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction2024}
+    expiration: 86400000  # 24小时
+  llm:
+    base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+    model: ${LLM_MODEL:deepseek-chat}
+    api-key: ${LLM_API_KEY:sk-placeholder}
+    mimo:
+      base-url: ${LLM_MIMO_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
+      model: ${LLM_MIMO_MODEL:mimo-v2.5}
+      api-key: ${LLM_MIMO_API_KEY:***}
+
+# Springdoc
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
