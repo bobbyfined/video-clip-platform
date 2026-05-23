@@ -62,3 +62,21 @@ export function getVideoUrl(taskId: number) {
 export function getLlmProviders() {
   return api.get('/llm/providers')
 }
+
+/** 获取支持的视频平台列表 */
+export function getSupportedPlatforms() {
+  return api.get('/download/platforms')
+}
+
+/** 通过链接下载视频并创建任务 */
+export function downloadFromUrl(url: string, contentType: string, targetPlatform: string, clipCount: number, llmProvider?: string) {
+  const formData = new URLSearchParams()
+  formData.append('url', url)
+  formData.append('contentType', contentType)
+  formData.append('targetPlatform', targetPlatform)
+  formData.append('clipCount', String(clipCount))
+  if (llmProvider) formData.append('llmProvider', llmProvider)
+  return api.post('/download', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  })
+}

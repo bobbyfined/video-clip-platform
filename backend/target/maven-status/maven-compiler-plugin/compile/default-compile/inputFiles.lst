@@ -9,6 +9,7 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/AdminController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/AuthController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/ClipController.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/DownloadController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/LlmController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/TaskController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/AdminUserUpdateRequest.java
@@ -46,3 +47,4 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/FileStorageService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/TaskService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/TranscriptionService.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/service/VideoDownloadService.java
