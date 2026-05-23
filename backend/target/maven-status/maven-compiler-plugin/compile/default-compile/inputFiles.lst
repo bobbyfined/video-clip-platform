@@ -34,6 +34,7 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/mapper/TranscriptSegmentMapper.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/mapper/UserMapper.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/runner/AdminInitializer.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/runner/FileCleanupRunner.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/runner/TaskWorker.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/security/CustomUserDetailsService.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/security/JwtAuthenticationFilter.java

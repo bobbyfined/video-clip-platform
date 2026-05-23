@@ -37,6 +37,10 @@ app:
   processed-dir: ${PROCESSED_DIR:./storage/processed}
   scraper:
     url: ${SCRAPER_URL:http://localhost:9000}
+  cleanup:
+    enabled: true
+    max-age-hours: 72    # 文件保留72小时（3天）
+    min-disk-gb: 2       # 磁盘最低剩余2GB时紧急清理
   jwt:
     secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction2024}
     expiration: 86400000  # 24小时

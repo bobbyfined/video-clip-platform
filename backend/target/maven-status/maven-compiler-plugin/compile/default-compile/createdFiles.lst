@@ -5,6 +5,8 @@ com/clip/platform/service/AnalysisService.class
 com/clip/platform/service/AnalysisService$GoldenQuote.class
 com/clip/platform/service/CaptchaService.class
 com/clip/platform/dto/request/LoginRequest.class
+com/clip/platform/runner/FileCleanupRunner.class
+com/clip/platform/runner/FileCleanupRunner$1.class
 com/clip/platform/controller/LlmController.class
 com/clip/platform/runner/TaskWorker.class
 com/clip/platform/entity/AnalysisResult.class
@@ -18,6 +20,7 @@ com/clip/platform/controller/AdminController.class
 com/clip/platform/dto/response/TaskDetailResponse.class
 com/clip/platform/service/FileStorageService.class
 com/clip/platform/service/AuthService.class
+com/clip/platform/runner/FileCleanupRunner$2.class
 com/clip/platform/controller/ClipController.class
 com/clip/platform/security/UserPrincipal.class
 com/clip/platform/security/JwtTokenProvider.class
@@ -40,6 +43,7 @@ com/clip/platform/common/GlobalExceptionHandler.class
 com/clip/platform/mapper/MediaTaskMapper.class
 com/clip/platform/entity/TaskLog.class
 com/clip/platform/service/RateLimitService.class
+com/clip/platform/runner/FileCleanupRunner$StorageInfo.class
 com/clip/platform/controller/CaptchaController.class
 com/clip/platform/ClipPlatformApplication.class
 com/clip/platform/mapper/AnalysisResultMapper.class
@@ -61,4 +65,5 @@ com/clip/platform/mapper/TranscriptSegmentMapper.class
 com/clip/platform/dto/response/AuthResponse.class
 com/clip/platform/service/TranscriptionService.class
 com/clip/platform/service/AdminService.class
+com/clip/platform/runner/FileCleanupRunner$3.class
 com/clip/platform/common/PageResult.class
