@@ -3,6 +3,7 @@
 基于 AI 的视频内容分析工具，自动将直播回放、长视频、播客等内容切片为适合短视频平台发布的片段。
 
 > **前端后端分离架构**：Spring Boot 3.3 + Vue 3 + MySQL
+> 📖 **[部署启动手册](DEPLOY.md)**
 
 ![登录页](docs/images/login.png)
 
