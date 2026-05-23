@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -198,7 +199,25 @@ public class TaskService {
         entity.setSummaryLong(result.summaryLong);
         entity.setKeyPoints(toJsonString(result.keyPoints));
         entity.setGoldenQuotes(toJsonString(result.goldenQuotes));
-        entity.setRawModelOutput(rawOutput);
+        // 清理 rawOutput 中的 markdown 代码块标记
+        String cleanOutput = rawOutput;
+        if (cleanOutput != null) {
+            cleanOutput = cleanOutput.trim();
+            if (cleanOutput.startsWith("```")) {
+                int firstNewline = cleanOutput.indexOf('\n');
+                if (firstNewline > 0) cleanOutput = cleanOutput.substring(firstNewline + 1);
+            }
+            if (cleanOutput.endsWith("```")) {
+                cleanOutput = cleanOutput.substring(0, cleanOutput.lastIndexOf("```")).trim();
+            }
+            // 验证是否为合法 JSON
+            try {
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(cleanOutput);
+            } catch (Exception e) {
+                cleanOutput = toJsonString(Map.of("raw", rawOutput));
+            }
+        }
+        entity.setRawModelOutput(cleanOutput);
         analysisMapper.insert(entity);
 
         // 保存切片建议

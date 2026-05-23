@@ -45,7 +45,7 @@ app:
     mimo:
       base-url: ${LLM_MIMO_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
       model: ${LLM_MIMO_MODEL:mimo-v2.5}
-      api-key: ${LLM_MIMO_API_KEY:sk-placeholder}
+      api-key: ${LLM_MIMO_API_KEY:***}
 
 # Springdoc
 springdoc:

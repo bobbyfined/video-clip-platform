@@ -4,6 +4,7 @@ com/clip/platform/service/AnalysisService.class
 com/clip/platform/service/AnalysisService$GoldenQuote.class
 com/clip/platform/dto/request/LoginRequest.class
 com/clip/platform/controller/LlmController.class
+com/clip/platform/runner/TaskWorker.class
 com/clip/platform/entity/AnalysisResult.class
 com/clip/platform/security/JwtAuthenticationFilter.class
 com/clip/platform/controller/TaskController.class
