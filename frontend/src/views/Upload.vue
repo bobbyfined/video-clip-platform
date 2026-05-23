@@ -60,7 +60,7 @@
       <!-- Tab 2: 链接下载 -->
       <el-tab-pane name="url">
         <template #label>
-          <span class="tab-label"><el-icon><link /></el-icon> 视频链接</span>
+          <span class="tab-label"><el-icon><link-icon /></el-icon> 视频链接</span>
         </template>
         <el-card shadow="never" class="upload-card">
           <div class="url-input-section">
@@ -72,7 +72,7 @@
               @keyup.enter="handleUrlDownload"
             >
               <template #prefix>
-                <el-icon><link /></el-icon>
+                <el-icon><link-icon /></el-icon>
               </template>
             </el-input>
             <el-button
@@ -154,7 +154,7 @@
           {{ isUploading ? `上传中 (${doneCount}/${fileQueue.length})...` : `开始上传 (${fileQueue.length} 个文件)` }}
         </el-button>
         <el-button v-if="fileQueue.length > 0 && !isUploading" @click="fileQueue = []">
-          <el-icon><delete /></el-icon> 清空队列
+          <el-icon><delete-icon /></el-icon> 清空队列
         </el-button>
       </div>
     </el-card>
@@ -167,9 +167,9 @@ import { useRouter } from 'vue-router'
 import { createTask, getLlmProviders, getSupportedPlatforms, downloadFromUrl } from '@/api/task'
 import { ElMessage } from 'element-plus'
 import {
-  UploadFilled, FolderOpened, Link, VideoPlay, Setting, Grid,
+  UploadFilled, FolderOpened, Link as LinkIcon, VideoPlay, Setting, Grid,
   InfoFilled, Document, VideoCamera, CircleCheckFilled,
-  CircleCloseFilled, Delete
+  CircleCloseFilled, Delete as DeleteIcon
 } from '@element-plus/icons-vue'
 import type { UploadFile } from 'element-plus'
 
