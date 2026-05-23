@@ -35,6 +35,8 @@ mybatis-plus:
 app:
   upload-dir: ${UPLOAD_DIR:./storage/uploads}
   processed-dir: ${PROCESSED_DIR:./storage/processed}
+  scraper:
+    url: ${SCRAPER_URL:http://localhost:9000}
   jwt:
     secret: ${JWT_SECRET:myDefaultSecretKeyForDevelopmentOnlyPleaseChangeInProduction2024}
     expiration: 86400000  # 24小时

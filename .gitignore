@@ -26,6 +26,9 @@ storage/
 
 # Docker
 docker-compose.override.yml
+
+# Scraper config (contains cookies)
+scraper-config/
 ss-*.png
 backend/target/
 frontend/dist/
