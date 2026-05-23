@@ -31,7 +31,8 @@ public class DownloadController {
     }
 
     /**
-     * 通过链接下载视频并创建任务
+     * 通过链接下载视频
+     * @param autoProcess true=下载后自动进入AI分析流程, false=仅下载
      */
     @PostMapping
     public Result<Map<String, Object>> downloadAndCreateTask(
@@ -39,7 +40,8 @@ public class DownloadController {
             @RequestParam(value = "contentType", defaultValue = "video") String contentType,
             @RequestParam(value = "targetPlatform", defaultValue = "douyin") String targetPlatform,
             @RequestParam(value = "clipCount", defaultValue = "5") Integer clipCount,
-            @RequestParam(value = "llmProvider", required = false) String llmProvider) {
+            @RequestParam(value = "llmProvider", required = false) String llmProvider,
+            @RequestParam(value = "autoProcess", defaultValue = "true") Boolean autoProcess) {
 
         Long userId = SecurityUtils.getCurrentUserId();
 
@@ -58,7 +60,7 @@ public class DownloadController {
         task.setTargetPlatform(targetPlatform);
         task.setClipCount(clipCount);
         task.setLlmProvider(llmProvider);
-        task.setStatus("PENDING");
+        task.setStatus(autoProcess ? "PENDING" : "DOWNLOADED");
         taskMapper.insert(task);
 
         return Result.ok(Map.of(
@@ -66,7 +68,7 @@ public class DownloadController {
                 "title", result.title,
                 "fileSize", result.fileSize,
                 "duration", result.duration,
-                "status", "PENDING"
+                "status", autoProcess ? "PENDING" : "DOWNLOADED"
         ));
     }
 }

@@ -139,6 +139,12 @@
             </el-radio-button>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="处理方式" v-if="uploadMode === 'url'">
+          <el-radio-group v-model="params.autoProcess">
+            <el-radio :value="true">🚀 下载后自动分析+切片</el-radio>
+            <el-radio :value="false">📥 仅下载视频</el-radio>
+          </el-radio-group>
+        </el-form-item>
       </el-form>
 
       <!-- 上传按钮 -->
@@ -190,10 +196,11 @@ const videoUrl = ref('')
 const isDownloading = ref(false)
 
 const params = reactive({
-  contentType: 'live',
+  contentType: 'video',
   targetPlatform: 'douyin',
   clipCount: 5,
   llmProvider: '',
+  autoProcess: true,
 })
 
 const llmProviders = ref<{id: string, name: string, model: string}[]>([])
@@ -289,7 +296,7 @@ async function handleUrlDownload() {
   try {
     const { data } = await downloadFromUrl(
       videoUrl.value.trim(), params.contentType, params.targetPlatform,
-      params.clipCount, params.llmProvider,
+      params.clipCount, params.llmProvider, params.autoProcess,
     )
     if (data.code === 200) {
       ElMessage.success(`下载成功：${data.data.title}`)

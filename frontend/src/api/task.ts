@@ -74,14 +74,20 @@ export function getSupportedPlatforms() {
 }
 
 /** 通过链接下载视频并创建任务 */
-export function downloadFromUrl(url: string, contentType: string, targetPlatform: string, clipCount: number, llmProvider?: string) {
+export function downloadFromUrl(url: string, contentType: string, targetPlatform: string, clipCount: number, llmProvider?: string, autoProcess: boolean = true) {
   const formData = new URLSearchParams()
   formData.append('url', url)
   formData.append('contentType', contentType)
   formData.append('targetPlatform', targetPlatform)
   formData.append('clipCount', String(clipCount))
   if (llmProvider) formData.append('llmProvider', llmProvider)
+  formData.append('autoProcess', String(autoProcess))
   return api.post('/download', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   })
+}
+
+/** 触发任务开始 AI 处理 */
+export function startProcessing(taskId: number) {
+  return api.post(`/tasks/${taskId}/process`)
 }

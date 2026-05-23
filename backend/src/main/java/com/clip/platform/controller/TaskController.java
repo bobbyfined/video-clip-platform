@@ -106,6 +106,17 @@ public class TaskController {
     }
 
     /**
+     * 触发任务开始 AI 处理（用于仅下载的任务）
+     */
+    @PostMapping("/{id}/process")
+    public Result<String> startProcessing(@PathVariable Long id) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        taskService.getTaskDetail(id, userId); // 权限校验
+        taskService.updateStatus(id, "PENDING", "等待处理...");
+        return Result.ok("任务已加入处理队列");
+    }
+
+    /**
      * 获取任务原始视频（用于预览播放）
      */
     @GetMapping("/{id}/video")

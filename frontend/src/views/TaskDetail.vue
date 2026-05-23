@@ -25,6 +25,14 @@
           </el-descriptions-item>
         </el-descriptions>
 
+        <!-- 已下载，待处理 -->
+        <div v-if="task.status === 'DOWNLOADED'" style="margin-top: 16px">
+          <el-alert title="视频已下载，点击下方按钮开始 AI 分析和切片" type="info" show-icon :closable="false" />
+          <el-button type="primary" size="large" style="margin-top: 12px" @click="handleStartProcessing">
+            🚀 开始 AI 分析+切片
+          </el-button>
+        </div>
+
         <!-- 处理中进度 -->
         <div v-if="isProcessing" style="margin-top: 16px">
           <el-progress :percentage="progressPercent" :stroke-width="12" striped striped-flow />
@@ -127,7 +135,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getTaskDetail, exportSrt, exportTxt, exportClips, renderClip, renderAllClips, getVideoUrl, downloadClip } from '@/api/task'
+import { getTaskDetail, exportSrt, exportTxt, exportClips, renderClip, renderAllClips, getVideoUrl, downloadClip, startProcessing } from '@/api/task'
 import { formatFileSize, formatDuration, formatTimeCode, formatDate, platformMap, contentTypeMap } from '@/utils/format'
 import { ElMessage } from 'element-plus'
 import TaskStatusTag from '@/components/TaskStatusTag.vue'
@@ -154,6 +162,18 @@ const isProcessing = computed(() => {
   const s = task.value?.status
   return s === 'PENDING' || s === 'EXTRACTING_AUDIO' || s === 'TRANSCRIBING' || s === 'ANALYZING'
 })
+
+async function handleStartProcessing() {
+  const id = Number(route.params.id)
+  try {
+    await startProcessing(id)
+    ElMessage.success('任务已加入处理队列')
+    await loadDetail()
+    startPolling()
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
 
 const progressPercent = computed(() => {
   const stage = task.value?.status

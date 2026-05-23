@@ -10,8 +10,9 @@ import type { TaskStatus } from '@/types'
 
 const props = defineProps<{ status: TaskStatus }>()
 
-const statusConfig: Record<TaskStatus, { label: string; type: string; effect: string }> = {
+const statusConfig: Record<string, { label: string; type: string; effect: string }> = {
   PENDING: { label: '等待中', type: 'info', effect: 'plain' },
+  DOWNLOADED: { label: '已下载', type: 'success', effect: 'plain' },
   EXTRACTING_AUDIO: { label: '提取音频', type: '', effect: 'light' },
   TRANSCRIBING: { label: '转写中', type: '', effect: 'light' },
   ANALYZING: { label: '分析中', type: 'warning', effect: 'light' },

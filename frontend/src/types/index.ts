@@ -15,7 +15,7 @@ export interface AuthResponse {
 }
 
 // 任务状态
-export type TaskStatus = 'PENDING' | 'EXTRACTING_AUDIO' | 'TRANSCRIBING' | 'ANALYZING' | 'COMPLETED' | 'FAILED'
+export type TaskStatus = 'PENDING' | 'DOWNLOADED' | 'EXTRACTING_AUDIO' | 'TRANSCRIBING' | 'ANALYZING' | 'COMPLETED' | 'FAILED'
 
 // 任务
 export interface MediaTask {
