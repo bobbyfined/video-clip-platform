@@ -1,7 +1,9 @@
 com/clip/platform/entity/User.class
+com/clip/platform/service/EmailVerificationService.class
 com/clip/platform/service/AnalysisService$ClipData.class
 com/clip/platform/service/AnalysisService.class
 com/clip/platform/service/AnalysisService$GoldenQuote.class
+com/clip/platform/service/CaptchaService.class
 com/clip/platform/dto/request/LoginRequest.class
 com/clip/platform/controller/LlmController.class
 com/clip/platform/runner/TaskWorker.class
@@ -10,6 +12,7 @@ com/clip/platform/security/JwtAuthenticationFilter.class
 com/clip/platform/controller/TaskController.class
 com/clip/platform/service/VideoDownloadService$DownloadResult.class
 com/clip/platform/service/AnalysisService$AnalysisResultData.class
+com/clip/platform/service/RateLimitService$AttemptInfo.class
 com/clip/platform/controller/DownloadController.class
 com/clip/platform/controller/AdminController.class
 com/clip/platform/dto/response/TaskDetailResponse.class
@@ -19,6 +22,7 @@ com/clip/platform/controller/ClipController.class
 com/clip/platform/security/UserPrincipal.class
 com/clip/platform/security/JwtTokenProvider.class
 com/clip/platform/mapper/ClipSuggestionMapper.class
+com/clip/platform/service/EmailVerificationService$VerifyEntry.class
 com/clip/platform/entity/ClipSuggestion.class
 com/clip/platform/service/ExportService.class
 com/clip/platform/mapper/UserMapper.class
@@ -35,6 +39,8 @@ com/clip/platform/config/WebMvcConfig.class
 com/clip/platform/common/GlobalExceptionHandler.class
 com/clip/platform/mapper/MediaTaskMapper.class
 com/clip/platform/entity/TaskLog.class
+com/clip/platform/service/RateLimitService.class
+com/clip/platform/controller/CaptchaController.class
 com/clip/platform/ClipPlatformApplication.class
 com/clip/platform/mapper/AnalysisResultMapper.class
 com/clip/platform/common/Result.class
@@ -46,6 +52,7 @@ com/clip/platform/mapper/TaskLogMapper.class
 com/clip/platform/entity/TranscriptSegment.class
 com/clip/platform/config/MyBatisPlusConfig$1.class
 com/clip/platform/dto/response/AdminStatsResponse.class
+com/clip/platform/service/CaptchaService$CaptchaEntry.class
 com/clip/platform/runner/AdminInitializer.class
 com/clip/platform/entity/MediaTask.class
 com/clip/platform/service/TaskService.class

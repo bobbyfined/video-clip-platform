@@ -7,6 +7,7 @@ import com.clip.platform.dto.response.AuthResponse;
 import com.clip.platform.dto.response.UserResponse;
 import com.clip.platform.security.SecurityUtils;
 import com.clip.platform.service.AuthService;
+import com.clip.platform.service.EmailVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
     /**
      * 用户注册
@@ -44,5 +46,17 @@ public class AuthController {
     public Result<UserResponse> me() {
         Long userId = SecurityUtils.getCurrentUserId();
         return Result.ok(authService.getCurrentUser(userId));
+    }
+
+    /**
+     * 邮箱验证
+     */
+    @GetMapping("/verify")
+    public Result<String> verifyEmail(@RequestParam String token) {
+        String email = emailVerificationService.verifyToken(token);
+        if (email == null) {
+            return Result.fail("验证链接无效或已过期");
+        }
+        return Result.ok("邮箱验证成功：" + email);
     }
 }
