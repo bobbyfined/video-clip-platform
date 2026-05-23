@@ -1,10 +1,13 @@
 <template>
   <div class="upload-page page-container">
-    <h2>上传视频/音频</h2>
+    <h2><el-icon><upload-filled /></el-icon> 上传视频/音频</h2>
 
     <el-tabs v-model="uploadMode" class="upload-tabs">
       <!-- Tab 1: 本地上传 -->
-      <el-tab-pane label="📁 本地上传" name="file">
+      <el-tab-pane name="file">
+        <template #label>
+          <span class="tab-label"><el-icon><folder-opened /></el-icon> 本地上传</span>
+        </template>
         <el-card shadow="never" class="upload-card">
           <el-upload
             ref="uploadRef"
@@ -21,6 +24,7 @@
             </div>
             <template #tip>
               <div class="el-upload__tip">
+                <el-icon><info-filled /></el-icon>
                 支持 mp4, mov, mp3, wav, m4a, webm 等格式，最大 500MB，支持多文件
               </div>
             </template>
@@ -28,12 +32,19 @@
 
           <!-- 上传队列 -->
           <div v-if="fileQueue.length > 0" class="upload-queue">
-            <el-divider>上传队列 ({{ fileQueue.length }} 个文件)</el-divider>
+            <el-divider>
+              <el-icon><document /></el-icon> 上传队列 ({{ fileQueue.length }} 个文件)
+            </el-divider>
             <div v-for="(item, index) in fileQueue" :key="index" class="queue-item">
               <div class="queue-info">
+                <el-icon class="queue-icon"><video-camera /></el-icon>
                 <span class="queue-name">{{ item.file.name }}</span>
                 <span class="queue-size">{{ formatFileSize(item.file.size) }}</span>
-                <el-tag :type="queueStatusType(item.status)" size="small">{{ queueStatusText(item) }}</el-tag>
+                <el-tag :type="queueStatusType(item.status)" size="small">
+                  <el-icon v-if="item.status === 'done'"><circle-check-filled /></el-icon>
+                  <el-icon v-else-if="item.status === 'error'"><circle-close-filled /></el-icon>
+                  {{ queueStatusText(item) }}
+                </el-tag>
               </div>
               <el-progress
                 v-if="item.status === 'uploading' || item.status === 'done'"
@@ -43,24 +54,14 @@
               />
             </div>
           </div>
-
-          <div class="upload-actions">
-            <el-button
-              type="primary"
-              size="large"
-              :loading="isUploading"
-              :disabled="fileQueue.length === 0"
-              @click="handleUploadAll"
-            >
-              {{ isUploading ? `上传中 (${doneCount}/${fileQueue.length})...` : `开始上传 (${fileQueue.length} 个文件)` }}
-            </el-button>
-            <el-button v-if="fileQueue.length > 0 && !isUploading" @click="fileQueue = []">清空队列</el-button>
-          </div>
         </el-card>
       </el-tab-pane>
 
       <!-- Tab 2: 链接下载 -->
-      <el-tab-pane label="🔗 视频链接" name="url">
+      <el-tab-pane name="url">
+        <template #label>
+          <span class="tab-label"><el-icon><link /></el-icon> 视频链接</span>
+        </template>
         <el-card shadow="never" class="upload-card">
           <div class="url-input-section">
             <el-input
@@ -74,57 +75,58 @@
                 <el-icon><link /></el-icon>
               </template>
             </el-input>
-
             <el-button
               type="primary"
               size="large"
               :loading="isDownloading"
               :disabled="!videoUrl.trim()"
               @click="handleUrlDownload"
-              style="margin-top: 12px; width: 100%"
+              class="download-btn"
             >
+              <el-icon v-if="!isDownloading"><video-play /></el-icon>
               {{ isDownloading ? '正在解析下载...' : '🚀 解析并创建任务' }}
             </el-button>
           </div>
 
           <!-- 支持的平台 -->
           <div class="supported-platforms">
-            <h4>支持的平台</h4>
+            <h4><el-icon><grid /></el-icon> 支持的平台</h4>
             <div class="platform-grid">
               <div v-for="p in platforms" :key="p.id" class="platform-item">
                 <span class="platform-icon">{{ p.icon }}</span>
                 <span class="platform-name">{{ p.name }}</span>
               </div>
             </div>
-            <p class="platform-note">以及更多 yt-dlp 支持的平台...</p>
           </div>
         </el-card>
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 公共参数设置 -->
-    <el-card shadow="never" class="upload-card" style="margin-top: 16px">
-      <el-divider>参数设置</el-divider>
+    <!-- 参数设置 -->
+    <el-card shadow="never" class="params-card">
+      <template #header>
+        <span><el-icon><setting /></el-icon> 参数设置</span>
+      </template>
       <el-form :model="params" label-width="100px">
         <el-form-item label="内容类型">
           <el-select v-model="params.contentType" style="width: 100%">
-            <el-option label="直播回放" value="live" />
-            <el-option label="长视频" value="video" />
-            <el-option label="播客" value="podcast" />
-            <el-option label="课程" value="course" />
-            <el-option label="访谈" value="interview" />
-            <el-option label="演讲" value="speech" />
-            <el-option label="其他" value="other" />
+            <el-option label="📺 直播回放" value="live" />
+            <el-option label="🎬 长视频" value="video" />
+            <el-option label="🎙️ 播客" value="podcast" />
+            <el-option label="📚 课程" value="course" />
+            <el-option label="🎤 访谈" value="interview" />
+            <el-option label="📢 演讲" value="speech" />
+            <el-option label="📎 其他" value="other" />
           </el-select>
         </el-form-item>
         <el-form-item label="目标平台">
           <el-select v-model="params.targetPlatform" style="width: 100%">
-            <el-option label="抖音" value="douyin" />
-            <el-option label="小红书" value="xiaohongshu" />
-            <el-option label="微信视频号" value="weixin_video" />
-            <el-option label="B站" value="bilibili" />
-            <el-option label="快手" value="kuaishou" />
-            <el-option label="其他" value="other" />
+            <el-option label="🎵 抖音" value="douyin" />
+            <el-option label="📕 小红书" value="xiaohongshu" />
+            <el-option label="💬 微信视频号" value="weixin_video" />
+            <el-option label="📺 B站" value="bilibili" />
+            <el-option label="⚡ 快手" value="kuaishou" />
+            <el-option label="📎 其他" value="other" />
           </el-select>
         </el-form-item>
         <el-form-item label="切片数量">
@@ -138,6 +140,23 @@
           </el-radio-group>
         </el-form-item>
       </el-form>
+
+      <!-- 上传按钮 -->
+      <div class="upload-actions" v-if="uploadMode === 'file'">
+        <el-button
+          type="primary"
+          size="large"
+          :loading="isUploading"
+          :disabled="fileQueue.length === 0"
+          @click="handleUploadAll"
+        >
+          <el-icon v-if="!isUploading"><upload-filled /></el-icon>
+          {{ isUploading ? `上传中 (${doneCount}/${fileQueue.length})...` : `开始上传 (${fileQueue.length} 个文件)` }}
+        </el-button>
+        <el-button v-if="fileQueue.length > 0 && !isUploading" @click="fileQueue = []">
+          <el-icon><delete /></el-icon> 清空队列
+        </el-button>
+      </div>
     </el-card>
   </div>
 </template>
@@ -147,7 +166,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createTask, getLlmProviders, getSupportedPlatforms, downloadFromUrl } from '@/api/task'
 import { ElMessage } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
+import {
+  UploadFilled, FolderOpened, Link, VideoPlay, Setting, Grid,
+  InfoFilled, Document, VideoCamera, CircleCheckFilled,
+  CircleCloseFilled, Delete
+} from '@element-plus/icons-vue'
 import type { UploadFile } from 'element-plus'
 
 interface QueueItem {
@@ -265,14 +288,11 @@ async function handleUrlDownload() {
   isDownloading.value = true
   try {
     const { data } = await downloadFromUrl(
-      videoUrl.value.trim(),
-      params.contentType,
-      params.targetPlatform,
-      params.clipCount,
-      params.llmProvider,
+      videoUrl.value.trim(), params.contentType, params.targetPlatform,
+      params.clipCount, params.llmProvider,
     )
     if (data.code === 200) {
-      ElMessage.success(`下载成功：${data.data.title}，任务已创建`)
+      ElMessage.success(`下载成功：${data.data.title}`)
       router.push(`/tasks/${data.data.id}`)
     } else {
       ElMessage.error(data.message || '下载失败')
@@ -293,9 +313,17 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <style scoped>
-.upload-page h2 { margin-bottom: 20px; }
-.upload-card { max-width: 700px; }
-.upload-tabs { max-width: 700px; }
+.upload-page h2 {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #303133;
+}
+.upload-tabs { max-width: 720px; }
+.tab-label { display: flex; align-items: center; gap: 4px; }
+.upload-card { max-width: 720px; }
+.params-card { max-width: 720px; margin-top: 16px; }
 .upload-icon { font-size: 48px; color: #c0c4cc; margin-bottom: 10px; }
 .upload-actions { text-align: center; margin-top: 20px; }
 .upload-queue { margin: 16px 0; }
@@ -306,9 +334,11 @@ function formatFileSize(bytes: number): string {
   gap: 10px;
   margin-bottom: 4px;
 }
+.queue-icon { color: #909399; font-size: 16px; }
 .queue-name { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .queue-size { color: #909399; font-size: 13px; }
 .url-input-section { margin-bottom: 20px; }
+.download-btn { margin-top: 12px; width: 100%; }
 .supported-platforms {
   margin-top: 20px;
   padding-top: 16px;
@@ -318,26 +348,35 @@ function formatFileSize(bytes: number): string {
   color: #606266;
   font-size: 14px;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .platform-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
 }
 .platform-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 8px 10px;
   background: #f5f7fa;
   border-radius: 8px;
   font-size: 13px;
+  transition: all 0.2s;
+  cursor: default;
 }
-.platform-icon { font-size: 18px; }
+.platform-item:hover {
+  background: #ecf5ff;
+  transform: translateY(-1px);
+}
+.platform-icon { font-size: 16px; }
 .platform-name { color: #303133; }
-.platform-note {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 10px;
+.el-upload__tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>
