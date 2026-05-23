@@ -11,6 +11,7 @@ com/clip/platform/controller/AdminController.class
 com/clip/platform/dto/response/TaskDetailResponse.class
 com/clip/platform/service/FileStorageService.class
 com/clip/platform/service/AuthService.class
+com/clip/platform/controller/ClipController.class
 com/clip/platform/security/UserPrincipal.class
 com/clip/platform/security/JwtTokenProvider.class
 com/clip/platform/mapper/ClipSuggestionMapper.class
@@ -22,6 +23,7 @@ com/clip/platform/common/BusinessException.class
 com/clip/platform/dto/request/RegisterRequest.class
 com/clip/platform/security/CustomUserDetailsService.class
 com/clip/platform/dto/request/AdminUserUpdateRequest.class
+com/clip/platform/service/ClipService.class
 com/clip/platform/service/TranscriptionService$TranscriptSegmentData.class
 com/clip/platform/controller/AuthController.class
 com/clip/platform/config/WebMvcConfig.class

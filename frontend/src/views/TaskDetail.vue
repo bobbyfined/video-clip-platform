@@ -32,11 +32,35 @@
         </div>
       </el-card>
 
+      <!-- 视频预览播放器 -->
+      <el-card shadow="never" v-if="task?.status === 'COMPLETED'" class="video-card" style="margin-top: 16px">
+        <template #header>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🎬 视频预览</span>
+            <el-button size="small" @click="showVideo = !showVideo">
+              {{ showVideo ? '收起' : '展开' }}
+            </el-button>
+          </div>
+        </template>
+        <div v-if="showVideo" class="video-container">
+          <video
+            ref="videoRef"
+            :src="videoUrl"
+            controls
+            preload="metadata"
+            class="video-player"
+          />
+          <div class="video-info">
+            当前时间: {{ formatTimeCode(currentTime) }}
+          </div>
+        </div>
+      </el-card>
+
       <!-- 内容标签页 -->
       <el-tabs v-model="activeTab" v-if="task?.status === 'COMPLETED' || task?.segments?.length" style="margin-top: 20px">
         <!-- 转写文本 -->
         <el-tab-pane label="转写文本" name="transcript">
-          <TranscriptViewer :segments="task?.segments || []" />
+          <TranscriptViewer :segments="task?.segments || []" @seek="seekTo" />
         </el-tab-pane>
 
         <!-- AI 分析 -->
@@ -69,11 +93,19 @@
 
         <!-- 切片建议 -->
         <el-tab-pane label="切片建议" name="clips">
+          <div style="margin-bottom: 16px">
+            <el-button type="primary" :loading="batchRendering" @click="handleRenderAll">
+              ✂️ 一键裁剪全部
+            </el-button>
+          </div>
           <div v-if="task?.clips?.length" class="clips-grid">
             <ClipSuggestionCard
               v-for="clip in task.clips"
               :key="clip.id"
               :clip="clip"
+              @render="handleRenderClip"
+              @download="handleDownloadClip"
+              @seek="seekTo"
             />
           </div>
           <el-empty v-else description="暂无切片建议" />
@@ -95,8 +127,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getTaskDetail, exportSrt, exportTxt, exportClips } from '@/api/task'
-import { formatFileSize, formatDuration, formatDate, platformMap, contentTypeMap } from '@/utils/format'
+import { getTaskDetail, exportSrt, exportTxt, exportClips, renderClip, renderAllClips, getVideoUrl } from '@/api/task'
+import { formatFileSize, formatDuration, formatTimeCode, formatDate, platformMap, contentTypeMap } from '@/utils/format'
 import { ElMessage } from 'element-plus'
 import TaskStatusTag from '@/components/TaskStatusTag.vue'
 import TranscriptViewer from '@/components/TranscriptViewer.vue'
@@ -107,7 +139,16 @@ const route = useRoute()
 const task = ref<TaskDetail | null>(null)
 const loading = ref(false)
 const activeTab = ref('transcript')
+const showVideo = ref(false)
+const videoRef = ref<HTMLVideoElement | null>(null)
+const currentTime = ref(0)
+const batchRendering = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
+
+const videoUrl = computed(() => {
+  const id = Number(route.params.id)
+  return getVideoUrl(id)
+})
 
 const isProcessing = computed(() => {
   const s = task.value?.status
@@ -117,11 +158,7 @@ const isProcessing = computed(() => {
 const progressPercent = computed(() => {
   const stage = task.value?.status
   const map: Record<string, number> = {
-    PENDING: 5,
-    EXTRACTING_AUDIO: 25,
-    TRANSCRIBING: 50,
-    ANALYZING: 75,
-    COMPLETED: 100,
+    PENDING: 5, EXTRACTING_AUDIO: 25, TRANSCRIBING: 50, ANALYZING: 75, COMPLETED: 100,
   }
   return map[stage || ''] || 10
 })
@@ -132,8 +169,14 @@ async function loadDetail() {
     if (data.code === 200) {
       task.value = data.data as TaskDetail
     }
-  } catch {
-    // ignore
+  } catch { /* ignore */ }
+}
+
+function seekTo(timeSeconds: number) {
+  if (videoRef.value) {
+    videoRef.value.currentTime = timeSeconds
+    videoRef.value.play()
+    showVideo.value = true
   }
 }
 
@@ -145,6 +188,40 @@ function startPolling() {
     }
     await loadDetail()
   }, 3000)
+}
+
+async function handleRenderClip(clipId: number) {
+  const id = Number(route.params.id)
+  try {
+    await renderClip(id, clipId)
+    ElMessage.success('切片裁剪完成')
+    await loadDetail()
+  } catch {
+    ElMessage.error('切片裁剪失败')
+  }
+}
+
+async function handleRenderAll() {
+  const id = Number(route.params.id)
+  batchRendering.value = true
+  try {
+    await renderAllClips(id)
+    ElMessage.success('全部切片裁剪完成')
+    await loadDetail()
+  } catch {
+    ElMessage.error('批量裁剪失败')
+  } finally {
+    batchRendering.value = false
+  }
+}
+
+async function handleDownloadClip(clipId: number) {
+  const id = Number(route.params.id)
+  const url = `/api/tasks/${id}/clips/${clipId}/download`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = ''
+  a.click()
 }
 
 async function handleExport(type: 'srt' | 'txt' | 'clips') {
@@ -165,21 +242,46 @@ async function handleExport(type: 'srt' | 'txt' | 'clips') {
   }
 }
 
+// 视频时间更新
+function onTimeUpdate() {
+  if (videoRef.value) {
+    currentTime.value = videoRef.value.currentTime
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   await loadDetail()
   loading.value = false
   if (isProcessing.value) startPolling()
+  // 监听视频时间更新
+  if (videoRef.value) {
+    videoRef.value.addEventListener('timeupdate', onTimeUpdate)
+  }
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  if (videoRef.value) {
+    videoRef.value.removeEventListener('timeupdate', onTimeUpdate)
+  }
 })
 </script>
 
 <style scoped>
-.info-card {
-  margin-top: 20px;
+.info-card { margin-top: 20px; }
+.video-card { margin-top: 16px; }
+.video-container { text-align: center; }
+.video-player {
+  width: 100%;
+  max-height: 480px;
+  border-radius: 8px;
+  background: #000;
+}
+.video-info {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #909399;
 }
 .clips-grid {
   display: grid;
@@ -191,15 +293,7 @@ onUnmounted(() => {
   padding: 8px 0;
   border-bottom: 1px dashed #ebeef5;
 }
-h4 {
-  margin-bottom: 10px;
-  color: #303133;
-}
-ul {
-  padding-left: 20px;
-}
-li {
-  margin-bottom: 6px;
-  line-height: 1.6;
-}
+h4 { margin-bottom: 10px; color: #303133; }
+ul { padding-left: 20px; }
+li { margin-bottom: 6px; line-height: 1.6; }
 </style>

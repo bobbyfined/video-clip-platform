@@ -23,3 +23,10 @@ Thumbs.db
 
 # Storage
 storage/
+
+# Docker
+docker-compose.override.yml
+ss-*.png
+backend/target/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo

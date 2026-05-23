@@ -41,3 +41,18 @@ export function exportTxt(id: number) {
 export function exportClips(id: number) {
   return api.get(`/tasks/${id}/export/clips`, { responseType: 'blob' })
 }
+
+/** 渲染单个切片 */
+export function renderClip(taskId: number, clipId: number) {
+  return api.post(`/tasks/${taskId}/clips/${clipId}/render`)
+}
+
+/** 批量渲染所有切片 */
+export function renderAllClips(taskId: number) {
+  return api.post(`/tasks/${taskId}/clips/render-all`)
+}
+
+/** 获取任务原始视频URL（用于播放器） */
+export function getVideoUrl(taskId: number) {
+  return `/api/tasks/${taskId}/video`
+}

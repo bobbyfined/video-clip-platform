@@ -275,6 +275,15 @@ public class TaskService {
         return 0;
     }
 
+    /**
+     * 获取视频文件绝对路径
+     */
+    public Path getVideoFilePath(Long taskId) {
+        MediaTask task = mediaTaskMapper.selectById(taskId);
+        if (task == null || task.getFilePath() == null) return null;
+        return fileStorageService.getAbsolutePath(task.getFilePath());
+    }
+
     private String toJsonString(Object obj) {
         try {
             return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(obj);

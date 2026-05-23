@@ -1,0 +1,4 @@
+-- 切片建议表增加裁剪相关字段
+ALTER TABLE `clip_suggestions`
+    ADD COLUMN `output_path` VARCHAR(1000) DEFAULT NULL COMMENT '裁剪后的视频路径',
+    ADD COLUMN `clip_status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '裁剪状态: PENDING/RENDERING/DONE/FAILED';

@@ -73,6 +73,8 @@ export interface ClipSuggestion {
   editingNotes: string | null
   score: number | null
   sortOrder: number
+  outputPath: string | null
+  clipStatus: 'PENDING' | 'RENDERING' | 'DONE' | 'FAILED'
 }
 
 // 任务详情

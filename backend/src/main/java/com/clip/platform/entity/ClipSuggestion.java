@@ -21,6 +21,8 @@ public class ClipSuggestion {
     private String editingNotes;
     private Integer score;
     private Integer sortOrder;
+    private String outputPath;
+    private String clipStatus; // PENDING, RENDERING, DONE, FAILED
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }

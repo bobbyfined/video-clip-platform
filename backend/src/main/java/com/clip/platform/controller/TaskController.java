@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
 /**
  * 任务控制器
@@ -99,5 +102,22 @@ public class TaskController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .contentLength(bytes.length)
                 .body(bytes);
+    }
+
+    /**
+     * 获取任务原始视频（用于预览播放）
+     */
+    @GetMapping("/{id}/video")
+    public ResponseEntity<Resource> getVideo(@PathVariable Long id) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        taskService.getTaskDetail(id, userId); // 权限校验
+        Path videoPath = taskService.getVideoFilePath(id);
+        if (videoPath == null || !videoPath.toFile().exists()) {
+            return ResponseEntity.notFound().build();
+        }
+        Resource resource = new FileSystemResource(videoPath);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("video/mp4"))
+                .body(resource);
     }
 }
