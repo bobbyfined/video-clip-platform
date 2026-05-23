@@ -30,21 +30,13 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final CaptchaService captchaService;
     private final RateLimitService rateLimitService;
-    private final EmailVerificationService emailVerificationService;
 
     /**
-     * 用户注册
+     * 用户注册（邮箱+邮箱验证码+密码，不需要图片验证码）
      */
     public UserResponse register(RegisterRequest request) {
-        // 验证码校验
-        if (!captchaService.verifyCaptcha(request.getCaptchaId(), request.getCaptchaCode())) {
-            throw new BusinessException("验证码错误或已过期");
-        }
-
-        // 密码强度校验
         validatePassword(request.getPassword());
 
-        // 检查邮箱是否已存在
         Long count = userMapper.selectCount(
                 new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail()));
         if (count > 0) {
@@ -59,33 +51,28 @@ public class AuthService {
         user.setPlan("FREE");
         userMapper.insert(user);
 
-        // 生成验证链接（日志输出，后续可接入邮件发送）
-        String verifyLink = emailVerificationService.generateVerifyLink(request.getEmail());
-        log.info("用户注册成功，验证链接: email={}, link={}", request.getEmail(), verifyLink);
-
+        log.info("用户注册成功: email={}", request.getEmail());
         return UserResponse.fromEntity(user);
     }
 
     /**
-     * 用户登录
+     * 密码登录（邮箱+密码+图片验证码）
      */
     public AuthResponse login(LoginRequest request) {
         String rateLimitKey = "login:" + request.getEmail();
 
-        // 频率限制检查
         Integer lockedSeconds = rateLimitService.checkLocked(rateLimitKey);
         if (lockedSeconds != null) {
             throw new BusinessException("登录失败次数过多，请 " + lockedSeconds + " 秒后再试");
         }
 
-        // 验证码校验
+        // 图片验证码校验
         if (!captchaService.verifyCaptcha(request.getCaptchaId(), request.getCaptchaCode())) {
             rateLimitService.recordFailure(rateLimitKey);
             throw new BusinessException("验证码错误或已过期");
         }
 
         try {
-            // 认证
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         } catch (Exception e) {
@@ -94,7 +81,6 @@ public class AuthService {
             throw new BusinessException("邮箱或密码错误，剩余 " + remaining + " 次尝试机会");
         }
 
-        // 查询用户
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getEmail, request.getEmail()));
         if (user == null) {
@@ -102,12 +88,22 @@ public class AuthService {
             throw new BusinessException("用户不存在");
         }
 
-        // 登录成功，清除记录
         rateLimitService.recordSuccess(rateLimitKey);
-
-        // 生成 Token
         String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
+        return new AuthResponse(token, UserResponse.fromEntity(user));
+    }
 
+    /**
+     * 验证码登录（邮箱+邮箱验证码，不需要图片验证码）
+     */
+    public AuthResponse loginByCode(String email) {
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getEmail, email));
+        if (user == null) {
+            throw new BusinessException("该邮箱未注册");
+        }
+
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
         return new AuthResponse(token, UserResponse.fromEntity(user));
     }
 
@@ -122,21 +118,10 @@ public class AuthService {
         return UserResponse.fromEntity(user);
     }
 
-    /**
-     * 密码强度校验
-     */
     private void validatePassword(String password) {
-        if (password.length() < 8) {
-            throw new BusinessException("密码长度至少8个字符");
-        }
-        if (!password.matches(".*[a-z].*")) {
-            throw new BusinessException("密码必须包含小写字母");
-        }
-        if (!password.matches(".*[A-Z].*")) {
-            throw new BusinessException("密码必须包含大写字母");
-        }
-        if (!password.matches(".*\\d.*")) {
-            throw new BusinessException("密码必须包含数字");
-        }
+        if (password.length() < 8) throw new BusinessException("密码长度至少8个字符");
+        if (!password.matches(".*[a-z].*")) throw new BusinessException("密码必须包含小写字母");
+        if (!password.matches(".*[A-Z].*")) throw new BusinessException("密码必须包含大写字母");
+        if (!password.matches(".*\\d.*")) throw new BusinessException("密码必须包含数字");
     }
 }

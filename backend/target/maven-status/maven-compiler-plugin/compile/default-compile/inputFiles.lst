@@ -14,8 +14,10 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/LlmController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/TaskController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/AdminUserUpdateRequest.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/LoginCodeRequest.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/LoginRequest.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/RegisterRequest.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/SendCodeRequest.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/response/AdminStatsResponse.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/response/AuthResponse.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/response/TaskDetailResponse.java

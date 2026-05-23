@@ -9,18 +9,10 @@
         <el-form-item prop="emailCode">
           <div class="email-code-row">
             <el-input v-model="form.emailCode" placeholder="邮箱验证码" prefix-icon="message" />
-            <el-button
-              type="primary"
-              :disabled="emailCodeCooldown > 0"
-              @click="handleSendEmailCode"
-              :loading="sendingEmailCode"
-            >
+            <el-button type="primary" :disabled="emailCodeCooldown > 0" @click="handleSendEmailCode" :loading="sendingEmailCode">
               {{ emailCodeCooldown > 0 ? `${emailCodeCooldown}s` : '发送验证码' }}
             </el-button>
           </div>
-        </el-form-item>
-        <el-form-item prop="nickname">
-          <el-input v-model="form.nickname" placeholder="昵称（选填）" prefix-icon="User" />
         </el-form-item>
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" placeholder="密码（8位以上，含大小写和数字）" prefix-icon="Lock" show-password />
@@ -28,18 +20,8 @@
         <el-form-item prop="confirmPassword">
           <el-input v-model="form.confirmPassword" type="password" placeholder="确认密码" prefix-icon="Lock" show-password />
         </el-form-item>
-        <el-form-item prop="captchaCode">
-          <div class="captcha-row">
-            <el-input v-model="form.captchaCode" placeholder="图片验证码" prefix-icon="Picture" />
-            <div class="captcha-img" @click="refreshCaptcha" title="点击刷新">
-              <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
-              <span v-else class="captcha-loading">加载中...</span>
-            </div>
-          </div>
-        </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" style="width: 100%" @click="handleRegister">
-            <el-icon v-if="!loading"><circle-check-filled /></el-icon>
             {{ loading ? '注册中...' : '注 册' }}
           </el-button>
         </el-form-item>
@@ -48,6 +30,23 @@
         已有账号？<router-link to="/login">立即登录</router-link>
       </div>
     </el-card>
+
+    <!-- 图片验证码弹窗（仅发送邮箱验证码时拦截） -->
+    <el-dialog v-model="showCaptchaDialog" title="验证" width="360" :close-on-click-modal="false">
+      <div class="captcha-dialog">
+        <p style="margin-bottom: 12px; color: #606266;">请输入图片验证码以继续</p>
+        <div class="captcha-row">
+          <el-input v-model="captchaInput" placeholder="验证码" size="large" @keyup.enter="confirmCaptcha" />
+          <div class="captcha-img" @click="refreshCaptcha" title="点击刷新">
+            <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showCaptchaDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmCaptcha" :loading="sendingEmailCode">确定发送</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -56,7 +55,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, getCaptcha, sendEmailCode } from '@/api/auth'
 import { ElMessage } from 'element-plus'
-import { EditPen, CircleCheckFilled, Picture } from '@element-plus/icons-vue'
+import { EditPen } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 const router = useRouter()
@@ -65,16 +64,16 @@ const loading = ref(false)
 
 const captchaId = ref('')
 const captchaImage = ref('')
+const captchaInput = ref('')
+const showCaptchaDialog = ref(false)
 const emailCodeCooldown = ref(0)
 const sendingEmailCode = ref(false)
 
 const form = reactive({
   email: '',
-  nickname: '',
+  emailCode: '',
   password: '',
   confirmPassword: '',
-  captchaCode: '',
-  emailCode: '',
 })
 
 const rules = {
@@ -86,15 +85,8 @@ const rules = {
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
-    {
-      validator: (_rule: any, value: string, callback: Function) => {
-        if (value !== form.password) callback(new Error('两次密码不一致'))
-        else callback()
-      },
-      trigger: 'blur',
-    },
+    { validator: (_r: any, v: string, cb: Function) => v === form.password ? cb() : cb(new Error('两次密码不一致')), trigger: 'blur' },
   ],
-  captchaCode: [{ required: true, message: '请输入图片验证码', trigger: 'blur' }],
 }
 
 async function refreshCaptcha() {
@@ -103,20 +95,31 @@ async function refreshCaptcha() {
     if (data.code === 200) {
       captchaId.value = data.data.captchaId
       captchaImage.value = data.data.image
+      captchaInput.value = ''
     }
   } catch { /* ignore */ }
 }
 
-async function handleSendEmailCode() {
+function handleSendEmailCode() {
   if (!form.email) {
     ElMessage.warning('请先输入邮箱地址')
     return
   }
+  refreshCaptcha()
+  showCaptchaDialog.value = true
+}
+
+async function confirmCaptcha() {
+  if (!captchaInput.value.trim()) {
+    ElMessage.warning('请输入验证码')
+    return
+  }
   sendingEmailCode.value = true
   try {
-    const { data } = await sendEmailCode(form.email)
+    const { data } = await sendEmailCode(form.email, captchaId.value, captchaInput.value)
     if (data.code === 200) {
       ElMessage.success('验证码已发送到邮箱')
+      showCaptchaDialog.value = false
       emailCodeCooldown.value = 60
       const timer = setInterval(() => {
         emailCodeCooldown.value--
@@ -124,9 +127,11 @@ async function handleSendEmailCode() {
       }, 1000)
     } else {
       ElMessage.error(data.message || '发送失败')
+      refreshCaptcha()
     }
   } catch (err: any) {
     ElMessage.error(err.response?.data?.message || '发送失败')
+    refreshCaptcha()
   } finally {
     sendingEmailCode.value = false
   }
@@ -138,26 +143,19 @@ async function handleRegister() {
 
   loading.value = true
   try {
-    const { data } = await register(
-      form.email, form.nickname, form.password,
-      captchaId.value, form.captchaCode, form.emailCode
-    )
+    const { data } = await register(form.email, form.emailCode, form.password)
     if (data.code === 200) {
       ElMessage.success('注册成功，请登录')
       router.push('/login')
     } else {
       ElMessage.error(data.message || '注册失败')
-      refreshCaptcha()
     }
   } catch (err: any) {
     ElMessage.error(err.response?.data?.message || '注册失败')
-    refreshCaptcha()
   } finally {
     loading.value = false
   }
 }
-
-onMounted(refreshCaptcha)
 </script>
 
 <style scoped>
@@ -167,10 +165,7 @@ onMounted(refreshCaptcha)
   align-items: center;
   min-height: 70vh;
 }
-.register-card {
-  width: 420px;
-  padding: 20px;
-}
+.register-card { width: 400px; padding: 20px; }
 .register-card h2 {
   text-align: center;
   margin-bottom: 30px;
@@ -180,56 +175,14 @@ onMounted(refreshCaptcha)
   justify-content: center;
   gap: 8px;
 }
-.register-footer {
-  text-align: center;
-  color: #909399;
-  font-size: 14px;
-}
-.register-footer a {
-  color: #409eff;
-}
-.email-code-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-.email-code-row .el-input {
-  flex: 1;
-}
-.email-code-row .el-button {
-  width: 120px;
-  flex-shrink: 0;
-}
-.captcha-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-.captcha-row .el-input {
-  flex: 1;
-}
-.captcha-img {
-  width: 150px;
-  height: 40px;
-  cursor: pointer;
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #dcdfe6;
-  flex-shrink: 0;
-}
-.captcha-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.captcha-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #909399;
-  font-size: 12px;
-  background: #f5f7fa;
-}
+.register-footer { text-align: center; color: #909399; font-size: 14px; }
+.register-footer a { color: #409eff; }
+.email-code-row { display: flex; gap: 12px; width: 100%; }
+.email-code-row .el-input { flex: 1; }
+.email-code-row .el-button { width: 120px; flex-shrink: 0; }
+.captcha-dialog { text-align: center; }
+.captcha-row { display: flex; gap: 12px; justify-content: center; }
+.captcha-row .el-input { width: 150px; }
+.captcha-img { width: 150px; height: 40px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid #dcdfe6; }
+.captcha-img img { width: 100%; height: 100%; object-fit: cover; }
 </style>

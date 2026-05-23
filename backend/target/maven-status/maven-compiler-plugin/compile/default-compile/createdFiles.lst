@@ -43,6 +43,7 @@ com/clip/platform/common/GlobalExceptionHandler.class
 com/clip/platform/mapper/MediaTaskMapper.class
 com/clip/platform/entity/TaskLog.class
 com/clip/platform/service/RateLimitService.class
+com/clip/platform/dto/request/SendCodeRequest.class
 com/clip/platform/runner/FileCleanupRunner$StorageInfo.class
 com/clip/platform/controller/CaptchaController.class
 com/clip/platform/ClipPlatformApplication.class
@@ -52,6 +53,7 @@ com/clip/platform/dto/response/TaskResponse.class
 com/clip/platform/dto/response/UserResponse.class
 com/clip/platform/config/MyBatisPlusConfig.class
 com/clip/platform/config/SecurityConfig.class
+com/clip/platform/dto/request/LoginCodeRequest.class
 com/clip/platform/mapper/TaskLogMapper.class
 com/clip/platform/entity/TranscriptSegment.class
 com/clip/platform/config/MyBatisPlusConfig$1.class
