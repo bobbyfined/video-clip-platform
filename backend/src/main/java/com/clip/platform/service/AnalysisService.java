@@ -12,53 +12,81 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 
 /**
- * AI 分析服务 - 调用 OpenAI 兼容 API
+ * AI 分析服务 - 支持多 LLM 提供商（DeepSeek / mimo 等 OpenAI 兼容 API）
  */
 @Slf4j
 @Service
 public class AnalysisService {
 
-    private final String baseUrl;
-    private final String model;
-    private final String apiKey;
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
+
+    // LLM 配置列表
+    private final Map<String, LlmConfig> providers = new LinkedHashMap<>();
 
     public AnalysisService(
-            @Value("${app.llm.base-url}") String baseUrl,
-            @Value("${app.llm.model}") String model,
-            @Value("${app.llm.api-key}") String apiKey,
+            @Value("${app.llm.base-url}") String defaultBaseUrl,
+            @Value("${app.llm.model}") String defaultModel,
+            @Value("${app.llm.api-key}") String defaultApiKey,
+            // mimo 配置（可选）
+            @Value("${app.llm.mimo.base-url:}") String mimoBaseUrl,
+            @Value("${app.llm.mimo.model:}") String mimoModel,
+            @Value("${app.llm.mimo.api-key:}") String mimoApiKey,
             ObjectMapper objectMapper) {
-        this.baseUrl = baseUrl;
-        this.model = model;
-        this.apiKey = apiKey;
-        this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
+        this.restTemplate = new RestTemplate();
+
+        // 注册默认提供商（DeepSeek）
+        if (defaultApiKey != null && !defaultApiKey.isBlank() && !defaultApiKey.equals("***")) {
+            providers.put("deepseek", new LlmConfig("deepseek", "DeepSeek", defaultBaseUrl, defaultModel, defaultApiKey));
+        }
+
+        // 注册 mimo 提供商
+        if (mimoApiKey != null && !mimoApiKey.isBlank()) {
+            providers.put("mimo", new LlmConfig("mimo", "MiMo", mimoBaseUrl, mimoModel, mimoApiKey));
+        }
+
+        log.info("已注册 LLM 提供商: {}", providers.keySet());
+    }
+
+    /**
+     * 获取可用的 LLM 提供商列表
+     */
+    public List<Map<String, String>> getAvailableProviders() {
+        List<Map<String, String>> list = new ArrayList<>();
+        for (LlmConfig config : providers.values()) {
+            Map<String, String> info = new HashMap<>();
+            info.put("id", config.id);
+            info.put("name", config.name);
+            info.put("model", config.model);
+            list.add(info);
+        }
+        return list;
     }
 
     /**
      * 分析转写内容
-     * @return LLM 返回的原始 JSON 字符串
+     * @param providerId 提供商ID，null 时使用第一个可用的
      */
-    public String analyze(String transcriptText, String contentType, String targetPlatform, int clipCount) {
+    public String analyze(String transcriptText, String contentType, String targetPlatform, int clipCount, String providerId) {
+        LlmConfig config = resolveProvider(providerId);
         String prompt = buildPrompt(transcriptText, contentType, targetPlatform, clipCount);
 
-        // 构建 OpenAI 兼容请求
         Map<String, Object> body = new HashMap<>();
-        body.put("model", model);
+        body.put("model", config.model);
         body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
         body.put("temperature", 0.7);
         body.put("max_tokens", 4096);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
+        headers.setBearerAuth(config.apiKey);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
         try {
-            String url = baseUrl.replaceAll("/$", "") + "/chat/completions";
-            log.info("调用 LLM: model={}, url={}", model, url);
+            String url = config.baseUrl.replaceAll("/$", "") + "/chat/completions";
+            log.info("调用 LLM [{}]: model={}, url={}", config.name, config.model, url);
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 
@@ -66,7 +94,6 @@ public class AnalysisService {
                 throw new BusinessException("LLM API 调用失败: HTTP " + response.getStatusCode());
             }
 
-            // 提取 content
             JsonNode root = objectMapper.readTree(response.getBody());
             String content = root.path("choices").path(0).path("message").path("content").asText("");
             if (content.isBlank()) {
@@ -78,8 +105,16 @@ public class AnalysisService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            throw new BusinessException("AI 分析失败: " + e.getMessage());
+            log.error("AI 分析失败 [{}]: {}", config.name, e.getMessage());
+            throw new BusinessException("AI 分析失败 (" + config.name + "): " + e.getMessage());
         }
+    }
+
+    /**
+     * 兼容旧调用（默认使用第一个可用提供商）
+     */
+    public String analyze(String transcriptText, String contentType, String targetPlatform, int clipCount) {
+        return analyze(transcriptText, contentType, targetPlatform, clipCount, null);
     }
 
     /**
@@ -87,7 +122,6 @@ public class AnalysisService {
      */
     public AnalysisResultData parseResult(String rawOutput) {
         try {
-            // 提取 JSON 部分
             String jsonStr = extractJson(rawOutput);
             JsonNode parsed = objectMapper.readTree(jsonStr);
 
@@ -95,7 +129,6 @@ public class AnalysisService {
             result.summaryShort = parsed.has("summary_short") ? parsed.get("summary_short").asText() : "";
             result.summaryLong = parsed.has("summary_long") ? parsed.get("summary_long").asText() : "";
 
-            // key_points
             result.keyPoints = new ArrayList<>();
             if (parsed.has("key_points") && parsed.get("key_points").isArray()) {
                 for (JsonNode node : parsed.get("key_points")) {
@@ -103,7 +136,6 @@ public class AnalysisService {
                 }
             }
 
-            // golden_quotes
             result.goldenQuotes = new ArrayList<>();
             if (parsed.has("golden_quotes") && parsed.get("golden_quotes").isArray()) {
                 for (JsonNode node : parsed.get("golden_quotes")) {
@@ -114,7 +146,6 @@ public class AnalysisService {
                 }
             }
 
-            // clips
             result.clips = new ArrayList<>();
             if (parsed.has("clips") && parsed.get("clips").isArray()) {
                 for (JsonNode node : parsed.get("clips")) {
@@ -137,6 +168,19 @@ public class AnalysisService {
         } catch (Exception e) {
             throw new BusinessException("解析 AI 分析结果失败: " + e.getMessage());
         }
+    }
+
+    private LlmConfig resolveProvider(String providerId) {
+        if (providerId != null && !providerId.isBlank()) {
+            LlmConfig config = providers.get(providerId);
+            if (config != null) return config;
+            throw new BusinessException("不支持的 LLM 提供商: " + providerId);
+        }
+        // 默认使用第一个可用的
+        if (providers.isEmpty()) {
+            throw new BusinessException("没有可用的 LLM 提供商，请配置 API Key");
+        }
+        return providers.values().iterator().next();
     }
 
     private String extractJson(String text) {
@@ -184,6 +228,13 @@ public class AnalysisService {
     }
 
     // ---- 内部数据类 ----
+    private static class LlmConfig {
+        String id, name, baseUrl, model, apiKey;
+        LlmConfig(String id, String name, String baseUrl, String model, String apiKey) {
+            this.id = id; this.name = name; this.baseUrl = baseUrl; this.model = model; this.apiKey = apiKey;
+        }
+    }
+
     public static class AnalysisResultData {
         public String summaryShort;
         public String summaryLong;

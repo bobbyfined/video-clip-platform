@@ -3,6 +3,7 @@ com/clip/platform/service/AnalysisService$ClipData.class
 com/clip/platform/service/AnalysisService.class
 com/clip/platform/service/AnalysisService$GoldenQuote.class
 com/clip/platform/dto/request/LoginRequest.class
+com/clip/platform/controller/LlmController.class
 com/clip/platform/entity/AnalysisResult.class
 com/clip/platform/security/JwtAuthenticationFilter.class
 com/clip/platform/controller/TaskController.class
@@ -21,6 +22,7 @@ com/clip/platform/mapper/UserMapper.class
 com/clip/platform/security/SecurityUtils.class
 com/clip/platform/common/BusinessException.class
 com/clip/platform/dto/request/RegisterRequest.class
+com/clip/platform/service/AnalysisService$LlmConfig.class
 com/clip/platform/security/CustomUserDetailsService.class
 com/clip/platform/dto/request/AdminUserUpdateRequest.class
 com/clip/platform/service/ClipService.class

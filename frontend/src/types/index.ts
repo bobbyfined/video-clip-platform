@@ -28,6 +28,7 @@ export interface MediaTask {
   contentType: string | null
   targetPlatform: string | null
   clipCount: number
+  llmProvider: string | null
   status: TaskStatus
   progressStage: string | null
   errorMessage: string | null

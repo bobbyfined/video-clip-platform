@@ -9,6 +9,7 @@
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/AdminController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/AuthController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/ClipController.java
+/home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/LlmController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/controller/TaskController.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/AdminUserUpdateRequest.java
 /home/user/projects/video-clip-platform/backend/src/main/java/com/clip/platform/dto/request/LoginRequest.java

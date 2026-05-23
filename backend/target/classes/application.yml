@@ -42,6 +42,10 @@ app:
     base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
     model: ${LLM_MODEL:deepseek-chat}
     api-key: ${LLM_API_KEY:sk-placeholder}
+    mimo:
+      base-url: ${LLM_MIMO_BASE_URL:https://token-plan-cn.xiaomimimo.com/v1}
+      model: ${LLM_MIMO_MODEL:mimo-v2.5}
+      api-key: ${LLM_MIMO_API_KEY:sk-placeholder}
 
 # Springdoc
 springdoc:

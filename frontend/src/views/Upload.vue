@@ -68,6 +68,13 @@
         <el-form-item label="切片数量">
           <el-input-number v-model="params.clipCount" :min="1" :max="20" />
         </el-form-item>
+        <el-form-item label="AI 引擎" v-if="llmProviders.length > 0">
+          <el-radio-group v-model="params.llmProvider">
+            <el-radio-button v-for="p in llmProviders" :key="p.id" :value="p.id">
+              {{ p.name }} ({{ p.model }})
+            </el-radio-button>
+          </el-radio-group>
+        </el-form-item>
       </el-form>
 
       <!-- 上传按钮 -->
@@ -88,9 +95,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createTask } from '@/api/task'
+import { createTask, getLlmProviders } from '@/api/task'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import type { UploadFile } from 'element-plus'
@@ -112,6 +119,21 @@ const params = reactive({
   contentType: 'live',
   targetPlatform: 'douyin',
   clipCount: 5,
+  llmProvider: '',
+})
+
+const llmProviders = ref<{id: string, name: string, model: string}[]>([])
+
+onMounted(async () => {
+  try {
+    const { data } = await getLlmProviders()
+    if (data.code === 200) {
+      llmProviders.value = data.data
+      if (llmProviders.value.length > 0 && !params.llmProvider) {
+        params.llmProvider = llmProviders.value[0].id
+      }
+    }
+  } catch { /* ignore */ }
 })
 
 const doneCount = computed(() => fileQueue.value.filter(i => i.status === 'done').length)
@@ -150,7 +172,7 @@ async function handleUploadAll() {
     item.status = 'uploading'
     try {
       const { data } = await createTask(
-        item.file, params.contentType, params.targetPlatform, params.clipCount,
+        item.file, params.contentType, params.targetPlatform, params.clipCount, params.llmProvider,
         (e) => { if (e.total) item.progress = Math.round((e.loaded / e.total) * 100) }
       )
       if (data.code === 200) {

@@ -41,7 +41,7 @@ public class TaskService {
      */
     @Transactional
     public TaskResponse createTask(Long userId, MultipartFile file,
-                                   String contentType, String targetPlatform, Integer clipCount) {
+                                   String contentType, String targetPlatform, Integer clipCount, String llmProvider) {
         // 存储文件
         String relativePath = fileStorageService.store(file, "uploads");
 
@@ -56,6 +56,7 @@ public class TaskService {
         task.setContentType(contentType != null ? contentType : "live");
         task.setTargetPlatform(targetPlatform != null ? targetPlatform : "douyin");
         task.setClipCount(clipCount != null ? clipCount : 5);
+        task.setLlmProvider(llmProvider);
         task.setStatus("PENDING");
         mediaTaskMapper.insert(task);
 

@@ -19,6 +19,7 @@ public class MediaTask {
     private String contentType;       // live/video/podcast/course/interview/speech/other
     private String targetPlatform;    // douyin/xiaohongshu/weixin_video/bilibili/kuaishou/other
     private Integer clipCount;
+    private String llmProvider;       // deepseek/mimo
     private String status;            // PENDING/EXTRACTING_AUDIO/TRANSCRIBING/ANALYZING/COMPLETED/FAILED
     private String progressStage;
     private String errorMessage;

@@ -38,9 +38,10 @@ public class TaskController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "contentType", defaultValue = "live") String contentType,
             @RequestParam(value = "targetPlatform", defaultValue = "douyin") String targetPlatform,
-            @RequestParam(value = "clipCount", defaultValue = "5") Integer clipCount) {
+            @RequestParam(value = "clipCount", defaultValue = "5") Integer clipCount,
+            @RequestParam(value = "llmProvider", required = false) String llmProvider) {
         Long userId = SecurityUtils.getCurrentUserId();
-        return Result.ok(taskService.createTask(userId, file, contentType, targetPlatform, clipCount));
+        return Result.ok(taskService.createTask(userId, file, contentType, targetPlatform, clipCount, llmProvider));
     }
 
     /**

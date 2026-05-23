@@ -16,6 +16,7 @@ public class TaskResponse {
     private String contentType;
     private String targetPlatform;
     private Integer clipCount;
+    private String llmProvider;
     private String status;
     private String progressStage;
     private String errorMessage;
@@ -34,6 +35,7 @@ public class TaskResponse {
         resp.setContentType(task.getContentType());
         resp.setTargetPlatform(task.getTargetPlatform());
         resp.setClipCount(task.getClipCount());
+        resp.setLlmProvider(task.getLlmProvider());
         resp.setStatus(task.getStatus());
         resp.setProgressStage(task.getProgressStage());
         resp.setErrorMessage(task.getErrorMessage());

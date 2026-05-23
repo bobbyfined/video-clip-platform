@@ -2,12 +2,13 @@ import api from './index'
 import type { ApiResult, PageResult, MediaTask, TaskDetail } from '@/types'
 
 /** 创建任务（上传文件） */
-export function createTask(file: File, contentType: string, targetPlatform: string, clipCount: number, onProgress?: (e: any) => void) {
+export function createTask(file: File, contentType: string, targetPlatform: string, clipCount: number, llmProvider?: string, onProgress?: (e: any) => void) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('contentType', contentType)
   formData.append('targetPlatform', targetPlatform)
   formData.append('clipCount', String(clipCount))
+  if (llmProvider) formData.append('llmProvider', llmProvider)
 
   return api.post<ApiResult<MediaTask>>('/tasks', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -55,4 +56,9 @@ export function renderAllClips(taskId: number) {
 /** 获取任务原始视频URL（用于播放器） */
 export function getVideoUrl(taskId: number) {
   return `/api/tasks/${taskId}/video`
+}
+
+/** 获取可用 LLM 提供商列表 */
+export function getLlmProviders() {
+  return api.get('/llm/providers')
 }
