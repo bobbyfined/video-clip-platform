@@ -42,7 +42,12 @@ public class CaptchaService {
         // 存储，5分钟过期
         captchaStore.put(captchaId, new CaptchaEntry(code.toLowerCase(), System.currentTimeMillis() + 5 * 60 * 1000));
 
-        return new String[]{captchaId, "data:image/png;base64," + base64};
+        // hutool 的 getImageBase64Data 可能已带 data:image 前缀
+        String imageBase64 = base64;
+        if (!base64.startsWith("data:")) {
+            imageBase64 = "data:image/png;base64," + base64;
+        }
+        return new String[]{captchaId, imageBase64};
     }
 
     /**
