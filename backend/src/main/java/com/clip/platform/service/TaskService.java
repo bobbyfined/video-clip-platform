@@ -281,7 +281,8 @@ public class TaskService {
     public Path getVideoFilePath(Long taskId) {
         MediaTask task = mediaTaskMapper.selectById(taskId);
         if (task == null || task.getFilePath() == null) return null;
-        return fileStorageService.getAbsolutePath(task.getFilePath());
+        Path absPath = fileStorageService.getAbsolutePath(task.getFilePath());
+        return absPath;
     }
 
     private String toJsonString(Object obj) {

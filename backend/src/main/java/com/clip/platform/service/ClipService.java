@@ -31,6 +31,9 @@ public class ClipService {
     private final TaskService taskService;
     private final FileStorageService fileStorageService;
 
+    @Value("${app.upload-dir:./storage/uploads}")
+    private String uploadDir;
+
     @Value("${app.processed-dir:./storage/processed}")
     private String processedDir;
 
@@ -161,6 +164,9 @@ public class ClipService {
         if (!"DONE".equals(clip.getClipStatus()) || clip.getOutputPath() == null) {
             throw new BusinessException("切片尚未渲染");
         }
-        return fileStorageService.getAbsolutePath(clip.getOutputPath());
+        // outputPath 格式: processed/xxx.mp4，基于 storage 目录解析
+        Path storageDir = Paths.get(uploadDir).toAbsolutePath().normalize().getParent();
+        if (storageDir == null) storageDir = Paths.get(".").toAbsolutePath().normalize();
+        return storageDir.resolve(clip.getOutputPath()).normalize();
     }
 }
