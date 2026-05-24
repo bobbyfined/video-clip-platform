@@ -102,7 +102,63 @@ npm run dev
 
 前端启动在 http://localhost:5173
 
-### 4. 默认管理员账号
+### 4. 配置邮件发送（验证码功能）
+
+验证码登录和邮箱注册需要配置 SMTP 邮件服务。默认是**关闭**的。
+
+#### 使用 QQ 邮箱
+
+1. 登录 QQ 邮箱 → 设置 → 账户
+2. 找到「POP3/SMTP 服务」，点击开启
+3. 按提示发送短信，获取**授权码**（16位字母，不是 QQ 登录密码）
+4. 设置环境变量：
+
+```bash
+# 邮件功能开关
+export MAIL_ENABLED=true
+
+# QQ 邮箱账号
+export MAIL_USERNAME=你的QQ号@qq.com
+
+# QQ 邮箱授权码（不是登录密码！）
+export MAIL_PASSWORD=你的授权码
+
+# 发件人地址（一般和用户名一致）
+export MAIL_FROM=你的QQ号@qq.com
+```
+
+或者创建 `.env` 文件（后端根目录）：
+
+```env
+MAIL_ENABLED=true
+MAIL_USERNAME=1610988849@qq.com
+MAIL_PASSWORD=abcdefghijklmnop
+MAIL_FROM=1610988849@qq.com
+```
+
+#### 使用其他邮箱
+
+| 邮箱 | SMTP 地址 | 端口 |
+|------|-----------|------|
+| QQ 邮箱 | smtp.qq.com | 465 |
+| 163 邮箱 | smtp.163.com | 465 |
+| Gmail | smtp.gmail.com | 587 |
+
+> ⚠️ 如果不配置邮件，验证码登录功能不可用，但仍可使用密码登录。
+
+### 5. 配置 AI 模型
+
+```bash
+# mimo 大模型（用于 AI 分析 + 语音转写）
+export LLM_MIMO_API_KEY=你的mimo-api-key
+
+# 可选：DeepSeek（不用可以不填）
+export LLM_API_KEY=sk-your-deepseek-key
+export LLM_BASE_URL=https://api.deepseek.com/v1
+export LLM_MODEL=deepseek-chat
+```
+
+### 6. 默认管理员账号
 
 - 邮箱: `admin@videoclip.com`
 - 密码: `admin123456`
@@ -201,8 +257,11 @@ docker compose up -d
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
+| GET | /api/captcha | 获取图片验证码 |
+| POST | /api/auth/send-code | 发送邮箱验证码 |
 | POST | /api/auth/register | 注册 |
-| POST | /api/auth/login | 登录 |
+| POST | /api/auth/login | 密码登录 |
+| POST | /api/auth/login-code | 验证码登录 |
 | GET | /api/auth/me | 当前用户 |
 | POST | /api/tasks | 创建任务 |
 | GET | /api/tasks | 任务列表 |

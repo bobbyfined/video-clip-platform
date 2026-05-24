@@ -10,10 +10,16 @@
       </div>
       <div class="header-right">
         <template v-if="authStore.isLoggedIn">
-          <router-link to="/upload">
-            <el-button type="primary" size="small">
-              <el-icon><upload-filled /></el-icon>
-              <span>上传视频</span>
+          <router-link to="/parse">
+            <el-button size="small">
+              <el-icon><link /></el-icon>
+              <span>视频解析</span>
+            </el-button>
+          </router-link>
+          <router-link to="/clip">
+            <el-button size="small">
+              <el-icon><scissor /></el-icon>
+              <span>AI 切片</span>
             </el-button>
           </router-link>
           <router-link to="/tasks">
@@ -47,6 +53,11 @@
           </el-dropdown>
         </template>
         <template v-else>
+          <router-link to="/parse">
+            <el-button size="small">
+              <span>视频解析</span>
+            </el-button>
+          </router-link>
           <router-link to="/login">
             <el-button size="small">
               <el-icon><key /></el-icon>登录
@@ -76,7 +87,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowDown, UploadFilled, List, Setting, User, SwitchButton, Key, EditPen } from '@element-plus/icons-vue'
+import { ArrowDown, List, Setting, User, SwitchButton, Key, EditPen } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -100,9 +111,13 @@ function handleCommand(command: string) {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e4e7ed;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
   padding: 0 24px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .logo {
   display: flex;
@@ -114,11 +129,11 @@ function handleCommand(command: string) {
   color: #303133;
 }
 .logo-icon { font-size: 24px; }
-.logo-text { color: #409eff; }
+.logo-text { color: #6366f1; }
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .user-info {
   display: flex;
@@ -126,10 +141,13 @@ function handleCommand(command: string) {
   cursor: pointer;
   color: #606266;
   font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
-.user-info:hover { color: #409eff; }
+.user-info:hover { color: #6366f1; background: #eef2ff; }
 .main {
-  background: #f5f7fa;
+  background: #f8fafc;
   min-height: calc(100vh - 120px);
 }
 .footer {
