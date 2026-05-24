@@ -9,11 +9,14 @@
       <!-- 第一步：选择来源 -->
       <div class="step-label">第一步 · 选择视频来源</div>
       <el-tabs v-model="sourceMode" class="source-tabs">
+        <!-- 本地文件 -->
         <el-tab-pane label="📁 本地文件" name="file">
           <el-upload
             drag
             :auto-upload="false"
             :on-change="handleFileChange"
+            :limit="1"
+            :on-exceed="() => ElMessage.warning('只能选择一个文件')"
             accept=".mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.m4a"
           >
             <el-icon class="upload-icon"><upload-filled /></el-icon>
@@ -31,11 +34,13 @@
                   <div style="font-size:12px;color:#64748b">{{ formatSize(selectedFile.size) }}</div>
                 </div>
                 <el-tag type="success" size="small">✅ 已选择</el-tag>
+                <el-button text type="danger" size="small" @click="selectedFile = null">移除</el-button>
               </div>
             </el-card>
           </div>
         </el-tab-pane>
 
+        <!-- 粘贴链接 -->
         <el-tab-pane label="🔗 粘贴链接" name="url">
           <div class="url-bar">
             <el-input v-model="videoUrl" placeholder="粘贴视频链接..." size="large" clearable @keydown.enter="handleParseUrl">
@@ -53,14 +58,14 @@
               <div style="flex:1">
                 <h4 style="font-size:15px;margin-bottom:4px">{{ parsedUrl.title }}</h4>
                 <div style="font-size:13px;color:#64748b;display:flex;gap:16px">
-                  <span>⏱️ {{ parsedUrl.duration }}</span>
-                  <span>📁 {{ parsedUrl.size }}</span>
-                  <span>📺 {{ parsedUrl.platform }}</span>
+                  <span v-if="parsedUrl.duration">⏱️ {{ formatDuration(parsedUrl.duration) }}</span>
+                  <span>📁 {{ formatSize(parsedUrl.fileSize) }}</span>
                 </div>
               </div>
               <el-tag type="success" size="small">✅ 已解析</el-tag>
             </div>
           </el-card>
+          <el-alert v-if="urlError" :title="urlError" type="error" show-icon style="margin-top:12px" @close="urlError = ''" />
         </el-tab-pane>
       </el-tabs>
 
@@ -88,9 +93,12 @@
             <el-col :span="12">
               <el-form-item label="AI 引擎">
                 <el-select v-model="params.llmProvider" style="width:100%">
-                  <el-option label="mimo 大模型" value="mimo" />
-                  <el-option label="GPT-4o" value="gpt4o" />
-                  <el-option label="Claude 3.5" value="claude" />
+                  <el-option
+                    v-for="p in llmProviders"
+                    :key="p.id"
+                    :label="p.name || p.id"
+                    :value="p.id"
+                  />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -109,7 +117,13 @@
             </el-col>
           </el-row>
           <div style="text-align:right;margin-top:12px">
-            <el-button type="primary" size="large" @click="handleSubmit">
+            <el-button
+              type="primary"
+              size="large"
+              :loading="submitting"
+              :disabled="!canSubmit"
+              @click="handleSubmit"
+            >
               🚀 开始切片处理
             </el-button>
           </div>
@@ -120,66 +134,168 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, Link, Loading } from '@element-plus/icons-vue'
+import { createTask, downloadFromUrl, getLlmProviders } from '@/api/task'
 
 const router = useRouter()
 const sourceMode = ref('file')
 const videoUrl = ref('')
 const parsingUrl = ref(false)
+const submitting = ref(false)
 const selectedFile = ref<File | null>(null)
-const parsedUrl = ref<{ title: string; duration: string; size: string; platform: string } | null>(null)
+const urlError = ref('')
+
+const parsedUrl = ref<{ title: string; duration: number; fileSize: number } | null>(null)
+const llmProviders = ref<Array<{ id: string; name: string }>>([])
 
 const params = reactive({
   targetPlatform: 'douyin',
-  llmProvider: 'mimo',
+  llmProvider: '',
   clipCount: 5,
   contentType: 'video',
 })
 
+const canSubmit = computed(() => {
+  return (selectedFile.value || parsedUrl.value) && !submitting.value
+})
+
+// 加载 LLM 提供商
+onMounted(async () => {
+  try {
+    const { data } = await getLlmProviders()
+    if (data.code === 200) {
+      llmProviders.value = data.data
+      if (llmProviders.value.length > 0 && !params.llmProvider) {
+        params.llmProvider = llmProviders.value[0].id
+      }
+    }
+  } catch {
+    llmProviders.value = [{ id: 'mimo', name: 'mimo 大模型' }]
+    params.llmProvider = 'mimo'
+  }
+})
+
 function handleFileChange(file: any) {
   selectedFile.value = file.raw
+  parsedUrl.value = null // 清除链接解析结果
 }
 
-function handleParseUrl() {
+async function handleParseUrl() {
   if (!videoUrl.value.trim()) {
     ElMessage.warning('请输入视频链接')
     return
   }
+
+  // 自动提取 URL
+  const urlRegex = /(https?:\/\/[^\s\]】]+)/g
+  const match = videoUrl.value.trim().match(urlRegex)
+  const extractedUrl = match ? match[0] : null
+  if (!extractedUrl) {
+    ElMessage.warning('未检测到有效链接，请粘贴视频URL')
+    return
+  }
+
   parsingUrl.value = true
   parsedUrl.value = null
-  setTimeout(() => {
-    parsedUrl.value = {
-      title: '直播回放 - 科技发布会完整版',
-      duration: '2:15:30',
-      size: '325.4 MB',
-      platform: 'B站',
+  urlError.value = ''
+  selectedFile.value = null // 清除文件选择
+
+  try {
+    // autoProcess=false，先解析不切片
+    const { data } = await downloadFromUrl(
+      extractedUrl,
+      params.contentType,
+      params.targetPlatform,
+      params.clipCount,
+      params.llmProvider,
+      false
+    )
+    if (data.code === 200) {
+      parsedUrl.value = {
+        title: data.data.title,
+        duration: data.data.duration,
+        fileSize: data.data.fileSize,
+      }
+      // 保存任务 ID，提交时直接触发处理
+      ElMessage.success('解析成功！配置参数后点击「开始切片」')
+    } else {
+      urlError.value = data.message || '解析失败'
     }
+  } catch (err: any) {
+    urlError.value = err.response?.data?.message || '解析失败，请检查链接'
+  } finally {
     parsingUrl.value = false
-  }, 1200)
+  }
 }
 
-function handleSubmit() {
-  ElMessage.success('切片任务已提交！')
-  router.push('/tasks/1')
+async function handleSubmit() {
+  submitting.value = true
+  try {
+    if (sourceMode.value === 'file' && selectedFile.value) {
+      // 本地文件上传
+      const { data } = await createTask(
+        selectedFile.value,
+        params.contentType,
+        params.targetPlatform,
+        params.clipCount,
+        params.llmProvider
+      )
+      if (data.code === 200) {
+        ElMessage.success('切片任务已提交！')
+        router.push(`/tasks/${data.data.id}`)
+      } else {
+        ElMessage.error(data.message || '提交失败')
+      }
+    } else if (sourceMode.value === 'url' && parsedUrl.value) {
+      // 链接模式：重新请求，这次 autoProcess=true
+      const urlRegex = /(https?:\/\/[^\s\]】]+)/g
+      const match = videoUrl.value.trim().match(urlRegex)
+      const extractedUrl = match ? match[0] : videoUrl.value.trim()
+      const { data } = await downloadFromUrl(
+        extractedUrl,
+        params.contentType,
+        params.targetPlatform,
+        params.clipCount,
+        params.llmProvider,
+        true
+      )
+      if (data.code === 200) {
+        ElMessage.success('切片任务已提交！')
+        router.push(`/tasks/${data.data.id}`)
+      } else {
+        ElMessage.error(data.message || '提交失败')
+      }
+    }
+  } catch (err: any) {
+    ElMessage.error(err.response?.data?.message || '提交失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function formatSize(bytes: number): string {
+  if (!bytes) return '--'
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB'
   return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB'
 }
+
+function formatDuration(seconds: number): string {
+  if (!seconds) return '--'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 </script>
 
 <style scoped>
-.clip-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
+.clip-page { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
 .page-header h2 { font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .desc { color: #64748b; margin-top: 6px; font-size: 15px; }
 .page-body { margin-top: 28px; }
@@ -190,14 +306,7 @@ function formatSize(bytes: number): string {
 .url-bar { display: flex; gap: 12px; }
 .url-bar .el-input { flex: 1; }
 .loading-state { display: flex; align-items: center; gap: 12px; padding: 16px 0; color: #6366f1; font-size: 14px; }
-.url-thumb {
-  width: 60px; height: 40px; border-radius: 8px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; color: #fff; flex-shrink: 0;
-}
+.url-thumb { width: 60px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; flex-shrink: 0; }
 .settings-card { border: 1px solid #e2e8f0; }
-@media (max-width: 768px) {
-  .url-bar { flex-direction: column; }
-}
+@media (max-width: 768px) { .url-bar { flex-direction: column; } }
 </style>

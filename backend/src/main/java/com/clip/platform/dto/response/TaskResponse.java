@@ -18,6 +18,7 @@ public class TaskResponse {
     private Integer clipCount;
     private String llmProvider;
     private String status;
+    private String filePath;
     private String progressStage;
     private String errorMessage;
     private LocalDateTime createdAt;
@@ -37,6 +38,7 @@ public class TaskResponse {
         resp.setClipCount(task.getClipCount());
         resp.setLlmProvider(task.getLlmProvider());
         resp.setStatus(task.getStatus());
+        resp.setFilePath(task.getFilePath());
         resp.setProgressStage(task.getProgressStage());
         resp.setErrorMessage(task.getErrorMessage());
         resp.setCreatedAt(task.getCreatedAt());

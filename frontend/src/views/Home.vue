@@ -80,10 +80,22 @@
 
       <!-- 统计卡片 -->
       <el-row :gutter="16" class="stats-row">
-        <el-col :span="6" v-for="stat in stats" :key="stat.label">
+        <el-col :span="8">
           <el-card class="stat-card" shadow="hover">
-            <div class="stat-num" :style="{ color: stat.color }">{{ stat.value }}</div>
-            <div class="stat-label">{{ stat.label }}</div>
+            <div class="stat-num">{{ totalTasks }}</div>
+            <div class="stat-label">处理视频</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-num">{{ completedTasks }}</div>
+            <div class="stat-label">已完成</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card class="stat-card" shadow="hover">
+            <div class="stat-num">{{ recentTasks.length }}</div>
+            <div class="stat-label">最近任务</div>
           </el-card>
         </el-col>
       </el-row>
@@ -104,46 +116,38 @@
           <div class="task-row">
             <div class="task-thumb">🎬</div>
             <div class="task-info">
-              <div class="task-title">{{ task.title }}</div>
+              <div class="task-title">{{ task.originalFilename || task.title }}</div>
               <div class="task-meta">
-                <span>🎯 {{ task.platform }}</span>
-                <span>🤖 {{ task.engine }}</span>
-                <span>📅 {{ task.date }}</span>
+                <span>🎯 {{ platformMap[task.targetPlatform] || task.targetPlatform }}</span>
+                <span>🤖 {{ task.llmProvider || 'mimo' }}</span>
+                <span>📅 {{ formatDate(task.createdAt) }}</span>
               </div>
             </div>
-            <el-tag :type="task.statusType" size="small">{{ task.statusText }}</el-tag>
+            <TaskStatusTag :status="task.status" />
           </div>
         </el-card>
       </div>
 
-      <!-- 热门切片 -->
-      <div class="section-header" style="margin-top: 32px">
-        <h3>🔥 我的热门切片</h3>
+      <div v-if="recentTasks.length === 0 && !tasksLoading" style="text-align:center;padding:40px 0;color:#64748b">
+        <div style="font-size:48px;margin-bottom:16px">📭</div>
+        <h3 style="margin-bottom:8px">还没有任务</h3>
+        <p>上传视频或粘贴链接，开始你的第一次 AI 切片</p>
+        <div style="margin-top:16px;display:flex;gap:12px;justify-content:center">
+          <el-button type="primary" @click="$router.push('/clip')">✂️ 开始切片</el-button>
+          <el-button @click="$router.push('/parse')">🔗 视频解析</el-button>
+        </div>
       </div>
-      <el-row :gutter="16">
-        <el-col :span="12" v-for="clip in hotClips" :key="clip.title">
-          <el-card class="clip-card" shadow="hover">
-            <div class="clip-thumb">
-              <span>{{ clip.icon }}</span>
-              <span class="clip-dur">{{ clip.dur }}</span>
-            </div>
-            <div class="clip-body">
-              <h4>{{ clip.title }}</h4>
-              <p class="clip-desc">{{ clip.desc }}</p>
-              <div class="clip-actions">
-                <el-button type="primary" size="small">▶ 预览</el-button>
-                <el-button size="small">⬇ 下载</el-button>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { getTasks } from '@/api/task'
+import type { MediaTask } from '@/types'
+import { platformMap } from '@/utils/format'
+import TaskStatusTag from '@/components/TaskStatusTag.vue'
 
 const authStore = useAuthStore()
 
@@ -163,23 +167,56 @@ const features = [
   { icon: '📤', title: '一键分发', desc: '切片完成直接发布到抖音/B站/小红书' },
 ]
 
-const stats = [
-  { value: '23', label: '处理视频', color: '#6366f1' },
-  { value: '87', label: '生成切片', color: '#6366f1' },
-  { value: '5.2h', label: '节省时间', color: '#6366f1' },
-  { value: '12.8万', label: '切片播放量', color: '#6366f1' },
-]
+// 真实任务数据
+const recentTasks = ref<MediaTask[]>([])
+const tasksLoading = ref(false)
+const totalTasks = ref(0)
+const completedTasks = ref(0)
 
-const recentTasks = [
-  { id: '1', title: '直播回放-2024-05-20-晚间场.mp4', platform: '抖音', engine: 'mimo', date: '05-20', statusType: 'success', statusText: '✅ 已完成' },
-  { id: '2', title: '播客-科技乱炖-第12期.mp3', platform: 'B站', engine: 'GPT-4o', date: '05-19', statusType: '', statusText: '🔄 分析中' },
-  { id: '3', title: 'BV1xx411c7mD - 科技发布会完整版', platform: 'YouTube', engine: 'mimo', date: '05-18', statusType: 'success', statusText: '✅ 已完成' },
-]
+onMounted(async () => {
+  if (authStore.isLoggedIn) {
+    tasksLoading.value = true
+    try {
+      const { data } = await getTasks(1, 5)
+      if (data.code === 200) {
+        recentTasks.value = data.data.list
+        totalTasks.value = data.data.total
+        completedTasks.value = data.data.list.filter((t: MediaTask) => t.status === 'COMPLETED').length
+      }
+    } catch {
+      // 忽略错误
+    } finally {
+      tasksLoading.value = false
+    }
+  }
+})
 
-const hotClips = [
-  { icon: '🎤', dur: '0:45', title: '雷军发布会金句', desc: '来自直播回放-05-20，AI 识别的高光时刻' },
-  { icon: '💡', dur: '1:20', title: '播客精华片段', desc: '来自科技乱炖-第12期，讨论 AI 未来' },
-]
+function statusType(status: string): string {
+  if (status === 'COMPLETED') return 'success'
+  if (status === 'FAILED') return 'danger'
+  if (status === 'PENDING' || status === 'DOWNLOADED') return 'warning'
+  return ''
+}
+
+function statusText(status: string): string {
+  const map: Record<string, string> = {
+    COMPLETED: '✅ 已完成',
+    FAILED: '❌ 失败',
+    PENDING: '⏳ 等待中',
+    DOWNLOADED: '📥 已下载',
+    EXTRACTING_AUDIO: '🔊 提取音频',
+    TRANSCRIBING: '🎤 转写中',
+    ANALYZING: '🤖 分析中',
+  }
+  return map[status] || status
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '--'
+  const d = new Date(dateStr)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+</script>
 </script>
 
 <style scoped>

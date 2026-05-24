@@ -216,7 +216,7 @@ public class VideoDownloadService {
             try { duration = Integer.parseInt(lines.get(lines.size() - 1).trim()); } catch (Exception ignored) {}
 
             Path absolutePath = Paths.get(filePath);
-            Path relativePath = uploadDir.getParent().relativize(absolutePath);
+            Path relativePath = uploadDir.relativize(absolutePath);
             long fileSize = Files.exists(absolutePath) ? Files.size(absolutePath) : 0;
             String ext = getFileExtension(filePath);
             String mimeType = getMimeType(ext);
@@ -247,7 +247,7 @@ public class VideoDownloadService {
             }
             Files.write(outputPath, fileBytes);
 
-            Path relativePath = uploadDir.getParent().relativize(outputPath);
+            Path relativePath = uploadDir.relativize(outputPath);
             String ext = defaultExt;
             String mimeType = getMimeType(ext);
 
@@ -309,7 +309,7 @@ public class VideoDownloadService {
             Path renamed = outputDir.resolve(uuid + "." + ext);
             Files.move(downloadedFile, renamed, StandardCopyOption.REPLACE_EXISTING);
 
-            Path relativePath = uploadDir.getParent().relativize(renamed);
+            Path relativePath = uploadDir.relativize(renamed);
             long fileSize = Files.size(renamed);
             String mimeType = getMimeType(ext);
             String title = downloadedFile.getFileName().toString().replaceAll("\\.[^.]+$", "");

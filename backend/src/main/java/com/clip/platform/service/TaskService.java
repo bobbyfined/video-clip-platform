@@ -109,6 +109,7 @@ public class TaskService {
         resp.setTargetPlatform(task.getTargetPlatform());
         resp.setClipCount(task.getClipCount());
         resp.setStatus(task.getStatus());
+        resp.setFilePath(task.getFilePath());
         resp.setProgressStage(task.getProgressStage());
         resp.setErrorMessage(task.getErrorMessage());
         resp.setCreatedAt(task.getCreatedAt());
